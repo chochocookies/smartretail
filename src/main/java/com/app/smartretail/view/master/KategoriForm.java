@@ -1,33 +1,17 @@
 package com.app.smartretail.view.master;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-
+import java.awt.*;
 import com.app.smartretail.config.DatabaseConnection;
+import com.app.smartretail.model.Kategori;
 import com.app.smartretail.utils.AlertUtil;
+import com.app.smartretail.utils.UITheme;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class KategoriForm extends JPanel {
 
@@ -64,7 +48,7 @@ public class KategoriForm extends JPanel {
         // Form panel
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(Color.WHITE);
+        formPanel.setBackground(UITheme.BG_CARD);
         formPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(220, 220, 220)),
             new EmptyBorder(15, 15, 15, 15)));

@@ -21,60 +21,17 @@ public class UserDAO {
 
     public User login(String username, String hashedPassword) {
         String sql = "SELECT * FROM users WHERE username = ? AND password = ? AND aktif = 1";
-        
-        System.out.println("\n[DEBUG UserDAO] === Memulai Query Login ===");
-        
-        // 1. Cek apakah koneksi null
-        if (this.conn == null) {
-            System.err.println("[DEBUG UserDAO] ERROR: Objek Koneksi (conn) NULL! Cek DatabaseConnection.java");
-            return null;
-        }
-
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            // 2. Cek parameter yang akan dikirim
-            System.out.println("[DEBUG UserDAO] SQL: " + sql);
-            System.out.println("[DEBUG UserDAO] Param 1 (Username): " + username);
-            System.out.println("[DEBUG UserDAO] Param 2 (Hashed): " + hashedPassword);
-            
             ps.setString(1, username);
             ps.setString(2, hashedPassword);
-            
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    System.out.println("[DEBUG UserDAO] SUCCESS: Data ditemukan di database.");
-                    return mapResultSet(rs);
-                } else {
-                    System.out.println("[DEBUG UserDAO] FAILED: Query jalan tapi tidak ada baris yang cocok (0 rows).");
-                    // Pengecekan tambahan: Apakah usernamenya saja ada?
-                    checkUserExistsOnly(username);
-                }
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return mapResultSet(rs);
             }
         } catch (SQLException e) {
-            System.err.println("[DEBUG UserDAO] SQL EXCEPTION: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("[UserDAO] Login error: " + e.getMessage());
         }
-        System.out.println("[DEBUG UserDAO] === Selesai Query Login ===\n");
         return null;
-    }
-
-    /**
-     * Debugger tambahan untuk mengecek apakah username ada tanpa mempedulikan password
-     */
-    private void checkUserExistsOnly(String username) {
-        String sql = "SELECT username, password, aktif FROM users WHERE username = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    System.out.println("[DEBUG UserDAO] Info: Username '" + username + "' TERSEDIA di tabel.");
-                    System.out.println("[DEBUG UserDAO] Info: Password di DB: " + rs.getString("password"));
-                    System.out.println("[DEBUG UserDAO] Info: Status Aktif: " + rs.getInt("aktif"));
-                    System.out.println("[DEBUG UserDAO] KESIMPULAN: Password yang dikirim Java TIDAK COCOK dengan yang di DB.");
-                } else {
-                    System.out.println("[DEBUG UserDAO] KESIMPULAN: Username '" + username + "' memang TIDAK ADA di tabel users.");
-                }
-            }
-        } catch (Exception e) { /* ignore debug error */ }
     }
 
     public List<User> getAll() {

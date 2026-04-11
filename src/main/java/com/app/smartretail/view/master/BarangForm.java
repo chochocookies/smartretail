@@ -1,239 +1,256 @@
 package com.app.smartretail.view.master;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.util.List;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+
 import com.app.smartretail.controller.BarangController;
 import com.app.smartretail.model.Barang;
 import com.app.smartretail.utils.AlertUtil;
 import com.app.smartretail.utils.FormatUtil;
 import com.app.smartretail.utils.Session;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.util.List;
+import com.app.smartretail.utils.UITheme;
 
 public class BarangForm extends JPanel {
 
-    private BarangController controller;
+    private final BarangController ctrl = new BarangController();
     private JTable table;
     private DefaultTableModel tableModel;
     private JTextField txtSearch, txtKode, txtNama, txtHargaBeli, txtHargaJual, txtStok, txtStokMin, txtSatuan;
     private JTextArea txtDeskripsi;
     private JButton btnTambah, btnEdit, btnHapus, btnSimpan, btnBatal, btnRefresh;
+    private JLabel lblFormTitle;
     private int selectedId = -1;
+    private boolean editMode = false;
 
     public BarangForm() {
-        this.controller = new BarangController();
-        setLayout(new BorderLayout(10, 10));
-        setBorder(new EmptyBorder(15, 15, 15, 15));
-        setBackground(new Color(245, 247, 250));
-        initComponents();
+        setLayout(new BorderLayout(0, 0));
+        setBackground(UITheme.BG_DARK);
+        setBorder(new EmptyBorder(24, 28, 24, 28));
+        build();
         loadData();
     }
 
-    private void initComponents() {
+    private void build() {
         // Header
-        JLabel title = new JLabel("📦 Data Barang");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        title.setForeground(new Color(30, 55, 95));
-        add(title, BorderLayout.NORTH);
+        JPanel hdr = new JPanel(new BorderLayout());
+        hdr.setOpaque(false);
+        hdr.setBorder(new EmptyBorder(0, 0, 20, 0));
+        JLabel title = UITheme.pageTitle("Data Barang");
+        JLabel sub = new JLabel("Kelola semua data produk & inventaris");
+        sub.setFont(UITheme.FONT_BODY); sub.setForeground(UITheme.TEXT_SECONDARY);
+        JPanel ht = new JPanel(); ht.setOpaque(false);
+        ht.setLayout(new BoxLayout(ht, BoxLayout.Y_AXIS));
+        ht.add(title); ht.add(sub);
+        hdr.add(ht, BorderLayout.WEST);
 
-        // Split pane
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        split.setDividerLocation(650);
-        split.setBorder(null);
+        JPanel actBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actBtns.setOpaque(false);
+        btnTambah  = UITheme.primaryButton("+ Tambah", UITheme.ACCENT_BLUE);
+        btnEdit    = UITheme.ghostButton("Edit", UITheme.ACCENT_AMBER);
+        btnHapus   = UITheme.dangerButton("Hapus");
+        btnRefresh = UITheme.ghostButton("↻", UITheme.TEXT_MUTED);
+        actBtns.add(btnRefresh); actBtns.add(btnHapus); actBtns.add(btnEdit); actBtns.add(btnTambah);
+        hdr.add(actBtns, BorderLayout.EAST);
+        add(hdr, BorderLayout.NORTH);
 
-        // ---- LEFT: Table ----
-        JPanel leftPanel = new JPanel(new BorderLayout(0, 10));
+        // ── MAIN: table + form split ──────────────────────────────────
+        JPanel main = new JPanel(new BorderLayout(16, 0));
+        main.setOpaque(false);
+
+        // Left: search + table
+        JPanel leftPanel = new JPanel(new BorderLayout(0, 12));
         leftPanel.setOpaque(false);
 
-        // Toolbar
-        JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        toolbar.setOpaque(false);
-
-        txtSearch = new JTextField(20);
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        txtSearch.putClientProperty("JTextField.placeholderText", "Cari kode / nama barang...");
-
-        JButton btnSearch = new JButton("🔍 Cari");
-        btnTambah  = new JButton("➕ Tambah");
-        btnEdit    = new JButton("✏️ Edit");
-        btnHapus   = new JButton("🗑️ Hapus");
-        btnRefresh = new JButton("🔄 Refresh");
-
-        styleButton(btnSearch,  new Color(70, 130, 180));
-        styleButton(btnTambah,  new Color(46, 204, 113));
-        styleButton(btnEdit,    new Color(241, 196, 15));
-        styleButton(btnHapus,   new Color(231, 76, 60));
-        styleButton(btnRefresh, new Color(149, 165, 166));
-
-        toolbar.add(txtSearch);
-        toolbar.add(btnSearch);
-        toolbar.add(btnTambah);
-        toolbar.add(btnEdit);
-        toolbar.add(btnHapus);
-        toolbar.add(btnRefresh);
+        // Search bar
+        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
+        searchBar.setOpaque(false);
+        txtSearch = UITheme.styledField("Cari kode atau nama barang…");
+        txtSearch.setPreferredSize(new Dimension(0, 38));
+        JButton btnSearch = UITheme.primaryButton("Cari", UITheme.ACCENT_BLUE);
+        searchBar.add(txtSearch, BorderLayout.CENTER);
+        searchBar.add(btnSearch, BorderLayout.EAST);
 
         // Table
-        String[] cols = {"ID", "Kode", "Nama Barang", "Kategori", "Harga Jual", "Stok", "Satuan", "Status"};
+        String[] cols = {"", "Kode", "Nama Barang", "Kategori", "Harga Jual", "Stok", "Satuan", "Status"};
         tableModel = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int r, int c) { return false; }
         };
         table = new JTable(tableModel);
-        table.setRowHeight(28);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        table.getTableHeader().setBackground(new Color(30, 55, 95));
-        table.getTableHeader().setForeground(Color.WHITE);
-        table.setSelectionBackground(new Color(210, 230, 255));
+        UITheme.styleTable(table);
         table.getColumnModel().getColumn(0).setMaxWidth(40);
+        table.getColumnModel().getColumn(5).setMaxWidth(60);
+        table.getColumnModel().getColumn(7).setMaxWidth(100);
+        table.setDefaultRenderer(Object.class, new StatusRowRenderer());
 
-        leftPanel.add(toolbar, BorderLayout.NORTH);
-        leftPanel.add(new JScrollPane(table), BorderLayout.CENTER);
+        leftPanel.add(searchBar, BorderLayout.NORTH);
+        leftPanel.add(UITheme.styledScroll(table), BorderLayout.CENTER);
 
-        // ---- RIGHT: Form ----
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
-        rightPanel.setBackground(Color.WHITE);
-        rightPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 220, 220)),
-            new EmptyBorder(15, 15, 15, 15)));
+        // Right: form panel
+        JPanel formCard = UITheme.card();
+        formCard.setLayout(new BoxLayout(formCard, BoxLayout.Y_AXIS));
+        formCard.setPreferredSize(new Dimension(290, 0));
+        formCard.setMaximumSize(new Dimension(290, Integer.MAX_VALUE));
 
-        JLabel lblForm = new JLabel("Form Barang");
-        lblForm.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblForm.setForeground(new Color(30, 55, 95));
-        lblForm.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblFormTitle = new JLabel("Detail Barang");
+        lblFormTitle.setFont(UITheme.FONT_H2);
+        lblFormTitle.setForeground(UITheme.TEXT_PRIMARY);
+        lblFormTitle.setAlignmentX(LEFT_ALIGNMENT);
 
-        txtKode      = createField("Kode Barang *", rightPanel);
-        txtNama      = createField("Nama Barang *", rightPanel);
-        txtHargaBeli = createField("Harga Beli", rightPanel);
-        txtHargaJual = createField("Harga Jual *", rightPanel);
-        txtStok      = createField("Stok Awal", rightPanel);
-        txtStokMin   = createField("Stok Minimum", rightPanel);
-        txtSatuan    = createField("Satuan (pcs/kg/dll)", rightPanel);
+        JSeparator sep = UITheme.separator();
+        sep.setAlignmentX(LEFT_ALIGNMENT);
 
-        JLabel lblDesk = new JLabel("Deskripsi");
-        lblDesk.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblDesk.setAlignmentX(Component.LEFT_ALIGNMENT);
+        txtKode      = addFormField(formCard, "Kode Barang");
+        txtNama      = addFormField(formCard, "Nama Barang *");
+        txtHargaBeli = addFormField(formCard, "Harga Beli");
+        txtHargaJual = addFormField(formCard, "Harga Jual *");
+        txtStok      = addFormField(formCard, "Stok Awal");
+        txtStokMin   = addFormField(formCard, "Stok Minimum");
+        txtSatuan    = addFormField(formCard, "Satuan (pcs / kg / dll)");
+
+        JLabel lDesk = UITheme.fieldLabel("Deskripsi");
+        lDesk.setAlignmentX(LEFT_ALIGNMENT);
         txtDeskripsi = new JTextArea(3, 0);
-        txtDeskripsi.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtDeskripsi.setFont(UITheme.FONT_BODY);
+        txtDeskripsi.setForeground(UITheme.TEXT_PRIMARY);
+        txtDeskripsi.setBackground(UITheme.BG_INPUT);
+        txtDeskripsi.setCaretColor(UITheme.ACCENT_BLUE);
         txtDeskripsi.setLineWrap(true);
+        txtDeskripsi.setBorder(BorderFactory.createCompoundBorder(
+            new UITheme.RoundedBorder(8, UITheme.BORDER_DEFAULT),
+            new EmptyBorder(8, 10, 8, 10)));
         JScrollPane spDesk = new JScrollPane(txtDeskripsi);
-        spDesk.setAlignmentX(Component.LEFT_ALIGNMENT);
+        spDesk.setBorder(BorderFactory.createEmptyBorder());
+        spDesk.setBackground(UITheme.BG_INPUT);
         spDesk.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        spDesk.setAlignmentX(LEFT_ALIGNMENT);
 
-        rightPanel.add(Box.createVerticalStrut(5));
-        rightPanel.add(lblForm);
-        rightPanel.add(Box.createVerticalStrut(10));
-        rightPanel.add(lblDesk);
-        rightPanel.add(spDesk);
-        rightPanel.add(Box.createVerticalStrut(12));
+        // Form action buttons
+        JPanel btnRow = new JPanel(new GridLayout(1, 2, 8, 0));
+        btnRow.setOpaque(false);
+        btnRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        btnRow.setAlignmentX(LEFT_ALIGNMENT);
+        btnSimpan = UITheme.primaryButton("Simpan", UITheme.ACCENT_BLUE);
+        btnBatal  = UITheme.ghostButton("Batal", UITheme.TEXT_MUTED);
+        btnRow.add(btnBatal); btnRow.add(btnSimpan);
 
-        // Form buttons
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        btnPanel.setOpaque(false);
-        btnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        btnSimpan = new JButton("💾 Simpan");
-        btnBatal  = new JButton("✖ Batal");
-        styleButton(btnSimpan, new Color(30, 55, 95));
-        styleButton(btnBatal,  new Color(149, 165, 166));
-        btnPanel.add(btnSimpan);
-        btnPanel.add(btnBatal);
-        rightPanel.add(btnPanel);
+        formCard.add(lblFormTitle);
+        formCard.add(Box.createVerticalStrut(8));
+        formCard.add(sep);
+        formCard.add(Box.createVerticalStrut(12));
+        formCard.add(lDesk);
+        formCard.add(Box.createVerticalStrut(5));
+        formCard.add(spDesk);
+        formCard.add(Box.createVerticalStrut(14));
+        formCard.add(Box.createVerticalGlue());
+        formCard.add(btnRow);
 
-        split.setLeftComponent(leftPanel);
-        split.setRightComponent(rightPanel);
-        add(split, BorderLayout.CENTER);
+        main.add(leftPanel, BorderLayout.CENTER);
+        main.add(formCard, BorderLayout.EAST);
+        add(main, BorderLayout.CENTER);
 
+        // ── Events ───────────────────────────────────────────────────
         setFormEnabled(false);
-
-        // Events
-        btnSearch.addActionListener(e -> {
-            String kw = txtSearch.getText().trim();
-            List<Barang> list = kw.isEmpty() ? controller.getAllBarang() : controller.searchBarang(kw);
-            fillTable(list);
-        });
+        btnSearch.addActionListener(e -> search());
+        txtSearch.addActionListener(e -> search());
         btnRefresh.addActionListener(e -> loadData());
-        btnTambah.addActionListener(e -> { clearForm(); setFormEnabled(true); selectedId = -1; txtKode.setText(controller.generateKode()); });
-        btnEdit.addActionListener(e -> editSelected());
-        btnHapus.addActionListener(e -> hapusSelected());
+        btnTambah.addActionListener(e -> startNew());
+        btnEdit.addActionListener(e -> startEdit());
+        btnHapus.addActionListener(e -> hapus());
         btnSimpan.addActionListener(e -> simpan());
-        btnBatal.addActionListener(e -> { clearForm(); setFormEnabled(false); });
-
+        btnBatal.addActionListener(e -> cancelForm());
         table.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) fillFormFromTable();
+            if (!e.getValueIsAdjusting()) fillForm();
         });
     }
 
-    private JTextField createField(String label, JPanel parent) {
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JTextField field = new JTextField();
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+    private JTextField addFormField(JPanel parent, String label) {
+        JLabel lbl = UITheme.fieldLabel(label);
+        lbl.setAlignmentX(LEFT_ALIGNMENT);
+        JTextField f = UITheme.styledField("");
+        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        f.setAlignmentX(LEFT_ALIGNMENT);
         parent.add(lbl);
-        parent.add(field);
         parent.add(Box.createVerticalStrut(5));
-        return field;
+        parent.add(f);
+        parent.add(Box.createVerticalStrut(10));
+        return f;
     }
 
-    private void styleButton(JButton btn, Color color) {
-        btn.setBackground(color);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-    }
-
-    private void loadData() {
-        fillTable(controller.getAllBarang());
+    private void loadData() { fillTable(ctrl.getAllBarang()); }
+    private void search() {
+        String kw = txtSearch.getText().trim();
+        fillTable(kw.isEmpty() ? ctrl.getAllBarang() : ctrl.searchBarang(kw));
     }
 
     private void fillTable(List<Barang> list) {
         tableModel.setRowCount(0);
+        int no = 1;
         for (Barang b : list) {
             tableModel.addRow(new Object[]{
-                b.getId(), b.getKodeBarang(), b.getNamaBarang(), b.getNamaKategori(),
+                no++, b.getKodeBarang(), b.getNamaBarang(), b.getNamaKategori(),
                 FormatUtil.formatRupiah(b.getHargaJual()), b.getStok(), b.getSatuan(),
-                b.isStokRendah() ? "⚠️ Rendah" : "✅ OK"
+                b.isStokRendah() ? "Rendah" : "OK"
             });
         }
     }
 
-    private void fillFormFromTable() {
+    private void fillForm() {
         int row = table.getSelectedRow();
         if (row < 0) return;
         selectedId = (int) tableModel.getValueAt(row, 0);
         txtKode.setText(tableModel.getValueAt(row, 1).toString());
         txtNama.setText(tableModel.getValueAt(row, 2).toString());
         txtHargaJual.setText(tableModel.getValueAt(row, 4).toString().replaceAll("[^\\d]", ""));
+        String status = tableModel.getValueAt(row, 7).toString();
+        lblFormTitle.setText(tableModel.getValueAt(row, 2).toString());
     }
 
-    private void editSelected() {
-        if (table.getSelectedRow() < 0) { AlertUtil.showWarning(this, "Pilih barang terlebih dahulu!"); return; }
-        setFormEnabled(true);
+    private void startNew() {
+        clearForm(); setFormEnabled(true); editMode = false;
+        selectedId = -1;
+        lblFormTitle.setText("Tambah Barang Baru");
+        txtKode.setText(ctrl.generateKode());
     }
 
-    private void hapusSelected() {
+    private void startEdit() {
         if (table.getSelectedRow() < 0) { AlertUtil.showWarning(this, "Pilih barang terlebih dahulu!"); return; }
-        if (!Session.isAdmin()) { AlertUtil.showWarning(this, "Hanya Admin yang bisa menghapus data!"); return; }
-        if (AlertUtil.showConfirm(this, "Yakin hapus barang ini?")) {
-            if (controller.hapusBarang(selectedId)) {
-                AlertUtil.showInfo(this, "Barang berhasil dihapus.");
-                loadData(); clearForm();
-            } else {
-                AlertUtil.showError(this, "Gagal menghapus barang.");
-            }
-        }
+        setFormEnabled(true); editMode = true;
+        lblFormTitle.setText("Edit: " + txtNama.getText());
+    }
+
+    private void hapus() {
+        if (table.getSelectedRow() < 0) { AlertUtil.showWarning(this, "Pilih barang terlebih dahulu!"); return; }
+        if (!Session.isAdmin()) { AlertUtil.showWarning(this, "Hanya Admin yang dapat menghapus data."); return; }
+        if (!AlertUtil.showConfirm(this, "Hapus barang ini?")) return;
+        if (ctrl.hapusBarang(selectedId)) {
+            AlertUtil.showInfo(this, "Barang berhasil dihapus.");
+            loadData(); clearForm(); setFormEnabled(false);
+        } else AlertUtil.showError(this, "Gagal menghapus barang.");
     }
 
     private void simpan() {
         if (txtNama.getText().isBlank() || txtHargaJual.getText().isBlank()) {
-            AlertUtil.showWarning(this, "Nama barang dan harga jual wajib diisi!");
-            return;
+            AlertUtil.showWarning(this, "Nama barang dan harga jual wajib diisi!"); return;
         }
         Barang b = new Barang();
         b.setId(selectedId);
@@ -246,14 +263,14 @@ public class BarangForm extends JPanel {
         b.setSatuan(txtSatuan.getText().trim());
         b.setDeskripsi(txtDeskripsi.getText().trim());
 
-        boolean ok = (selectedId == -1) ? controller.tambahBarang(b) : controller.updateBarang(b);
+        boolean ok = (selectedId == -1) ? ctrl.tambahBarang(b) : ctrl.updateBarang(b);
         if (ok) {
             AlertUtil.showInfo(this, "Data barang berhasil disimpan!");
             loadData(); clearForm(); setFormEnabled(false);
-        } else {
-            AlertUtil.showError(this, "Gagal menyimpan data barang.");
-        }
+        } else AlertUtil.showError(this, "Gagal menyimpan data.");
     }
+
+    private void cancelForm() { clearForm(); setFormEnabled(false); lblFormTitle.setText("Detail Barang"); }
 
     private void clearForm() {
         selectedId = -1;
@@ -262,11 +279,26 @@ public class BarangForm extends JPanel {
         txtSatuan.setText(""); txtDeskripsi.setText("");
     }
 
-    private void setFormEnabled(boolean enabled) {
-        txtKode.setEnabled(enabled); txtNama.setEnabled(enabled);
-        txtHargaBeli.setEnabled(enabled); txtHargaJual.setEnabled(enabled);
-        txtStok.setEnabled(enabled); txtStokMin.setEnabled(enabled);
-        txtSatuan.setEnabled(enabled); txtDeskripsi.setEnabled(enabled);
-        btnSimpan.setEnabled(enabled); btnBatal.setEnabled(enabled);
+    private void setFormEnabled(boolean e) {
+        txtKode.setEnabled(e); txtNama.setEnabled(e); txtHargaBeli.setEnabled(e);
+        txtHargaJual.setEnabled(e); txtStok.setEnabled(e); txtStokMin.setEnabled(e);
+        txtSatuan.setEnabled(e); txtDeskripsi.setEnabled(e);
+        btnSimpan.setEnabled(e); btnBatal.setEnabled(e);
+    }
+
+    // Custom row renderer for status column
+    private class StatusRowRenderer extends DefaultTableCellRenderer {
+        @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c) {
+            Component comp = super.getTableCellRendererComponent(t, v, sel, foc, r, c);
+            comp.setBackground(sel ? new Color(82,130,255,40) :
+                (r%2==0 ? UITheme.BG_CARD : UITheme.BG_ROW_ALT));
+            comp.setForeground(UITheme.TEXT_PRIMARY);
+            if (c == 7 && v != null) {
+                if ("Rendah".equals(v.toString())) comp.setForeground(UITheme.ACCENT_CORAL);
+                else comp.setForeground(UITheme.ACCENT_TEAL);
+            }
+            setBorder(new EmptyBorder(0,10,0,10));
+            return comp;
+        }
     }
 }

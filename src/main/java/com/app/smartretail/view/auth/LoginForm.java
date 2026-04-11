@@ -1,234 +1,297 @@
 package com.app.smartretail.view.auth;
 
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JSeparator;
+import javax.swing.JTextField;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
+
 import com.app.smartretail.controller.AuthController;
 import com.app.smartretail.model.User;
-import com.app.smartretail.utils.AlertUtil;
+import com.app.smartretail.utils.UITheme;
 import com.app.smartretail.view.dashboard.DashboardForm;
 
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.*;
-
-/**
- * LoginForm - Halaman login SmartRetailApp
- */
 public class LoginForm extends JFrame {
 
     private JTextField txtUsername;
     private JPasswordField txtPassword;
     private JButton btnLogin;
     private JLabel lblStatus;
-    private AuthController authController;
+    private final AuthController authCtrl = new AuthController();
 
     public LoginForm() {
-        this.authController = new AuthController();
-        initComponents();
-        setLookAndFeel();
+        UITheme.apply();
+        initUI();
     }
 
-    private void setLookAndFeel() {
-        try {
-            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-            SwingUtilities.updateComponentTreeUI(this);
-        } catch (Exception ignored) {}
-    }
-
-    private void initComponents() {
-        setTitle("SRMS - Login");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(420, 480);
+    private void initUI() {
+        setTitle("SRMS — Login");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(900, 560);
         setLocationRelativeTo(null);
         setResizable(false);
+        setUndecorated(true);
 
-        // Main panel
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(30, 55, 95));
+        JPanel root = new JPanel(new GridLayout(1, 2));
+        root.setBackground(UITheme.BG_DARK);
 
-        // Header panel
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(new Color(30, 55, 95));
-        headerPanel.setPreferredSize(new Dimension(420, 140));
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        headerPanel.setBorder(new EmptyBorder(30, 20, 20, 20));
+        // ── LEFT: Branding ───────────────────────────────────────────
+        JPanel left = new JPanel(new GridBagLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(UITheme.BG_SIDEBAR);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setColor(new Color(82, 130, 255, 20));
+                g2.fillOval(-80, -80, 340, 340);
+                g2.setColor(new Color(130, 82, 255, 15));
+                g2.fillOval(180, 300, 280, 280);
+                g2.setColor(new Color(255, 255, 255, 5));
+                for (int x = 18; x < getWidth(); x += 26)
+                    for (int y = 18; y < getHeight(); y += 26)
+                        g2.fillOval(x, y, 2, 2);
+                g2.dispose();
+            }
+        };
+        left.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("Smart Retail", SwingConstants.CENTER);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        lblTitle.setForeground(Color.WHITE);
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JPanel brand = new JPanel();
+        brand.setOpaque(false);
+        brand.setLayout(new BoxLayout(brand, BoxLayout.Y_AXIS));
+        brand.setMaximumSize(new Dimension(300, 400));
 
-        JLabel lblSubTitle = new JLabel("Management System", SwingConstants.CENTER);
-        lblSubTitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        lblSubTitle.setForeground(new Color(180, 200, 230));
-        lblSubTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // Logo
+        JLabel logo = new JLabel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(UITheme.ACCENT_BLUE);
+                g2.fillRoundRect(0, 0, 54, 54, 14, 14);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
+                g2.drawString("SR", 10, 36);
+                g2.dispose();
+            }
+            { setPreferredSize(new Dimension(54,54)); setMaximumSize(new Dimension(54,54)); setOpaque(false); }
+        };
 
-        JLabel lblVersion = new JLabel("v1.0.0", SwingConstants.CENTER);
-        lblVersion.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblVersion.setForeground(new Color(150, 180, 210));
-        lblVersion.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel lName = new JLabel("Smart Retail");
+        lName.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        lName.setForeground(UITheme.TEXT_PRIMARY);
+        lName.setAlignmentX(LEFT_ALIGNMENT);
 
-        headerPanel.add(lblTitle);
-        headerPanel.add(Box.createVerticalStrut(5));
-        headerPanel.add(lblSubTitle);
-        headerPanel.add(Box.createVerticalStrut(5));
-        headerPanel.add(lblVersion);
+        JLabel lSub = new JLabel("Management System");
+        lSub.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        lSub.setForeground(UITheme.TEXT_SECONDARY);
+        lSub.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Form panel
-        JPanel formPanel = new JPanel();
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setLayout(new GridBagLayout());
-        formPanel.setBorder(new EmptyBorder(30, 40, 30, 40));
+        JSeparator s1 = new JSeparator();
+        s1.setForeground(UITheme.BORDER_DEFAULT);
+        s1.setMaximumSize(new Dimension(220, 1));
+        s1.setAlignmentX(LEFT_ALIGNMENT);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(6, 0, 6, 0);
+        JLabel lDesc = new JLabel("<html><p style='width:220px;color:#8C94B2;font-size:11px;line-height:1.7'>" +
+                "Platform terintegrasi untuk manajemen penjualan, stok, pembelian, dan laporan bisnis ritel.</p></html>");
+        lDesc.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Username
-        JLabel lblUser = new JLabel("Username");
-        lblUser.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        gbc.gridx = 0; gbc.gridy = 0;
-        formPanel.add(lblUser, gbc);
+        // Feature tags
+        JPanel tags = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        tags.setOpaque(false);
+        tags.setAlignmentX(LEFT_ALIGNMENT);
+        String[] feats = {"POS", "Stok", "Laporan", "Multi-Role"};
+        Color[] tagColors = {UITheme.ACCENT_BLUE, UITheme.ACCENT_TEAL, UITheme.ACCENT_AMBER, UITheme.ACCENT_PURPLE};
+        for (int i = 0; i < feats.length; i++) {
+            tags.add(UITheme.badge(feats[i], tagColors[i], tagColors[i]));
+        }
 
-        txtUsername = new JTextField();
-        txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtUsername.setPreferredSize(new Dimension(300, 36));
-        txtUsername.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)));
-        gbc.gridy = 1;
-        formPanel.add(txtUsername, gbc);
+        brand.add(logo);
+        brand.add(Box.createVerticalStrut(18));
+        brand.add(lName);
+        brand.add(Box.createVerticalStrut(4));
+        brand.add(lSub);
+        brand.add(Box.createVerticalStrut(16));
+        brand.add(s1);
+        brand.add(Box.createVerticalStrut(14));
+        brand.add(lDesc);
+        brand.add(Box.createVerticalStrut(14));
+        brand.add(tags);
 
-        // Password
-        JLabel lblPass = new JLabel("Password");
-        lblPass.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        gbc.gridy = 2;
-        formPanel.add(lblPass, gbc);
+        left.add(brand);
 
-        txtPassword = new JPasswordField();
-        txtPassword.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        txtPassword.setPreferredSize(new Dimension(300, 36));
-        txtPassword.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)));
-        gbc.gridy = 3;
-        formPanel.add(txtPassword, gbc);
+        // ── RIGHT: Form ──────────────────────────────────────────────
+        JPanel right = new JPanel(new GridBagLayout());
+        right.setBackground(UITheme.BG_DARK);
 
-        // Status label
+        JPanel form = new JPanel();
+        form.setOpaque(false);
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setMaximumSize(new Dimension(320, 500));
+
+        // Close btn (since undecorated)
+        JButton btnClose = closeBtn();
+        JPanel topRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        topRow.setOpaque(false);
+        topRow.setMaximumSize(new Dimension(320, 28));
+        topRow.add(btnClose);
+        btnClose.addActionListener(e -> System.exit(0));
+
+        JLabel lTitle = new JLabel("Selamat Datang!");
+        lTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lTitle.setForeground(UITheme.TEXT_PRIMARY);
+        lTitle.setAlignmentX(LEFT_ALIGNMENT);
+
+        JLabel lSubT = new JLabel("Masuk ke akun SRMS Anda");
+        lSubT.setFont(UITheme.FONT_BODY);
+        lSubT.setForeground(UITheme.TEXT_SECONDARY);
+        lSubT.setAlignmentX(LEFT_ALIGNMENT);
+
+        // Fields
+        JLabel lU = UITheme.fieldLabel("Username");
+        lU.setAlignmentX(LEFT_ALIGNMENT);
+        txtUsername = UITheme.styledField("Masukkan username…");
+        txtUsername.setMaximumSize(new Dimension(320, 42));
+        txtUsername.setAlignmentX(LEFT_ALIGNMENT);
+
+        JLabel lP = UITheme.fieldLabel("Password");
+        lP.setAlignmentX(LEFT_ALIGNMENT);
+        txtPassword = UITheme.styledPassword("••••••••");
+        txtPassword.setMaximumSize(new Dimension(320, 42));
+        txtPassword.setAlignmentX(LEFT_ALIGNMENT);
+
         lblStatus = new JLabel(" ");
-        lblStatus.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblStatus.setForeground(Color.RED);
-        lblStatus.setHorizontalAlignment(SwingConstants.CENTER);
-        gbc.gridy = 4;
-        formPanel.add(lblStatus, gbc);
+        lblStatus.setFont(UITheme.FONT_SMALL);
+        lblStatus.setForeground(UITheme.ACCENT_CORAL);
+        lblStatus.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Login button
-        btnLogin = new JButton("MASUK");
+        btnLogin = UITheme.primaryButton("  Masuk  ", UITheme.ACCENT_BLUE);
         btnLogin.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnLogin.setBackground(new Color(30, 55, 95));
-        btnLogin.setForeground(Color.WHITE);
-        btnLogin.setPreferredSize(new Dimension(300, 42));
-        btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnLogin.setFocusPainted(false);
-        btnLogin.setBorderPainted(false);
-        btnLogin.setOpaque(true);
-        gbc.gridy = 5;
-        gbc.insets = new Insets(10, 0, 0, 0);
-        formPanel.add(btnLogin, gbc);
+        btnLogin.setMaximumSize(new Dimension(320, 44));
+        btnLogin.setPreferredSize(new Dimension(320, 44));
+        btnLogin.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Footer
-        JLabel lblFooter = new JLabel("© 2025 SmartRetailApp", SwingConstants.CENTER);
-        lblFooter.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblFooter.setForeground(Color.GRAY);
-        gbc.gridy = 6;
-        gbc.insets = new Insets(20, 0, 0, 0);
-        formPanel.add(lblFooter, gbc);
+        JLabel lHint = new JLabel("Default login: admin / admin123");
+        lHint.setFont(UITheme.FONT_SMALL);
+        lHint.setForeground(UITheme.TEXT_MUTED);
+        lHint.setAlignmentX(LEFT_ALIGNMENT);
 
-        mainPanel.add(headerPanel, BorderLayout.NORTH);
-        mainPanel.add(formPanel, BorderLayout.CENTER);
-        add(mainPanel);
+        form.add(topRow);
+        form.add(Box.createVerticalStrut(4));
+        form.add(lTitle);
+        form.add(Box.createVerticalStrut(4));
+        form.add(lSubT);
+        form.add(Box.createVerticalStrut(26));
+        form.add(lU);
+        form.add(Box.createVerticalStrut(7));
+        form.add(txtUsername);
+        form.add(Box.createVerticalStrut(16));
+        form.add(lP);
+        form.add(Box.createVerticalStrut(7));
+        form.add(txtPassword);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lblStatus);
+        form.add(Box.createVerticalStrut(14));
+        form.add(btnLogin);
+        form.add(Box.createVerticalStrut(16));
+        form.add(lHint);
 
-        // Events
+        right.add(form);
+
+        root.add(left);
+        root.add(right);
+
+        // Drag to move
+        addDrag(left); addDrag(right);
+        setContentPane(root);
+
         btnLogin.addActionListener(e -> doLogin());
         txtPassword.addActionListener(e -> doLogin());
         txtUsername.addActionListener(e -> txtPassword.requestFocus());
-
-        // Hover effect
-        btnLogin.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btnLogin.setBackground(new Color(20, 40, 80));
-            }
-            public void mouseExited(MouseEvent e) {
-                btnLogin.setBackground(new Color(30, 55, 95));
-            }
-        });
     }
 
     private void doLogin() {
-        String username = txtUsername.getText().trim();
-        String password = new String(txtPassword.getPassword());
-
-        if (username.isEmpty() || password.isEmpty()) {
-            lblStatus.setText("Username dan password tidak boleh kosong!");
-            return;
+        String user = txtUsername.getText().trim();
+        String pass = new String(txtPassword.getPassword());
+        if (user.isEmpty() || pass.isEmpty()) {
+            lblStatus.setForeground(UITheme.ACCENT_CORAL);
+            lblStatus.setText("Username dan password wajib diisi!"); return;
         }
-
-        // --- DEBUG START ---
-        System.out.println("\n[DEBUG] === Mencoba Proses Login ===");
-        System.out.println("[DEBUG] Input Username: " + username);
-        System.out.println("[DEBUG] Input Password: " + (password.isEmpty() ? "Kosong" : "Terisi"));
-        // --- DEBUG END ---
-
         btnLogin.setEnabled(false);
-        lblStatus.setText("Memproses...");
+        lblStatus.setForeground(UITheme.TEXT_SECONDARY);
+        lblStatus.setText("Memverifikasi…");
 
-        SwingWorker<User, Void> worker = new SwingWorker<>() {
-            @Override
-            protected User doInBackground() throws Exception {
-                // Di sini kita panggil controller
-                User result = authController.login(username, password);
-                
-                // Debugging hasil pencarian di Database
-                if (result == null) {
-                    System.out.println("[DEBUG] Database Result: User TIDAK ditemukan (null).");
-                } else {
-                    System.out.println("[DEBUG] Database Result: User ditemukan! Nama: " + result.getNamaLengkap());
-                }
-                return result;
-            }
-
-            @Override
+        new SwingWorker<User, Void>() {
+            protected User doInBackground() { return authCtrl.login(user, pass); }
             protected void done() {
                 try {
-                    User user = get();
-                    if (user != null) {
-                        lblStatus.setForeground(new Color(0, 128, 0));
-                        lblStatus.setText("Login berhasil! Membuka Dashboard...");
-                        
-                        Timer timer = new Timer(800, ev -> {
-                            dispose();
-                            new DashboardForm().setVisible(true);
-                        });
-                        timer.setRepeats(false);
-                        timer.start();
+                    User u = get();
+                    if (u != null) {
+                        lblStatus.setForeground(UITheme.ACCENT_GREEN);
+                        lblStatus.setText("Berhasil! Memuat dashboard…");
+                        new Timer(600, ev -> { dispose(); new DashboardForm().setVisible(true); }) {{setRepeats(false);}}.start();
                     } else {
-                        lblStatus.setForeground(Color.RED);
+                        lblStatus.setForeground(UITheme.ACCENT_CORAL);
                         lblStatus.setText("Username atau password salah!");
-                        txtPassword.setText("");
-                        txtPassword.requestFocus();
+                        txtPassword.setText(""); btnLogin.setEnabled(true);
                     }
-                } catch (Exception ex) {
-                    // Menampilkan error asli di console (sangat penting!)
-                    System.err.println("[CRITICAL ERROR] Terjadi kesalahan sistem saat login:");
-                    ex.printStackTrace(); 
-                    
-                    lblStatus.setForeground(Color.RED);
-                    lblStatus.setText("Error: " + ex.getCause().getMessage());
-                } finally {
-                    btnLogin.setEnabled(true);
-                }
-                System.out.println("[DEBUG] === Selesai Proses Login ===\n");
+                } catch (Exception ex) { lblStatus.setText("Error sistem."); btnLogin.setEnabled(true); }
+            }
+        }.execute();
+    }
+
+    private JButton closeBtn() {
+        JButton b = new JButton("✕") {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isRollover()) {
+                    g2.setColor(UITheme.ACCENT_CORAL);
+                    g2.fillRoundRect(0,0,getWidth(),getHeight(),6,6);
+                    g2.setColor(Color.WHITE);
+                } else g2.setColor(UITheme.TEXT_MUTED);
+                g2.setFont(new Font("Segoe UI",Font.PLAIN,12));
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString("✕", getWidth()/2 - fm.stringWidth("✕")/2, getHeight()/2 + fm.getAscent()/2 - 2);
+                g2.dispose();
             }
         };
-        worker.execute();
+        b.setPreferredSize(new Dimension(26, 26));
+        b.setOpaque(false); b.setContentAreaFilled(false);
+        b.setBorderPainted(false); b.setFocusPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    private int dx, dy;
+    private void addDrag(JPanel p) {
+        p.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) { dx = e.getX(); dy = e.getY(); }
+        });
+        p.addMouseMotionListener(new MouseMotionAdapter() {
+            public void mouseDragged(MouseEvent e) {
+                setLocation(getX() + e.getX() - dx, getY() + e.getY() - dy);
+            }
+        });
     }
 }
