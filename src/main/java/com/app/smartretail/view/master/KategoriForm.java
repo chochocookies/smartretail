@@ -1,17 +1,34 @@
 package com.app.smartretail.view.master;
 
-import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+
 import com.app.smartretail.config.DatabaseConnection;
-import com.app.smartretail.model.Kategori;
 import com.app.smartretail.utils.AlertUtil;
 import com.app.smartretail.utils.UITheme;
-
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class KategoriForm extends JPanel {
 
@@ -32,7 +49,7 @@ public class KategoriForm extends JPanel {
     private void initComponents() {
         JLabel title = new JLabel("📂 Kategori Barang");
         title.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        title.setForeground(new Color(30, 55, 95));
+        title.setForeground(UITheme.ACCENT_BLUE);
         add(title, BorderLayout.NORTH);
 
         // Table
@@ -42,7 +59,7 @@ public class KategoriForm extends JPanel {
         table.setRowHeight(28);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        table.getTableHeader().setBackground(new Color(30, 55, 95));
+        table.getTableHeader().setBackground(UITheme.ACCENT_BLUE);
         table.getTableHeader().setForeground(Color.WHITE);
 
         // Form panel
@@ -56,7 +73,7 @@ public class KategoriForm extends JPanel {
 
         JLabel lblF = new JLabel("Form Kategori");
         lblF.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblF.setForeground(new Color(30, 55, 95));
+        lblF.setForeground(UITheme.ACCENT_BLUE);
         lblF.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel l1 = new JLabel("Nama Kategori *");
@@ -74,7 +91,7 @@ public class KategoriForm extends JPanel {
         JPanel btnP = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         btnP.setOpaque(false); btnP.setAlignmentX(Component.LEFT_ALIGNMENT);
         btnSimpan = new JButton("💾 Simpan"); btnHapus = new JButton("🗑️ Hapus"); btnBatal = new JButton("✖ Batal");
-        styleBtn(btnSimpan, new Color(30,55,95)); styleBtn(btnHapus, new Color(231,76,60)); styleBtn(btnBatal, new Color(149,165,166));
+        styleBtn(btnSimpan, UITheme.ACCENT_BLUE); styleBtn(btnHapus, new Color(231,76,60)); styleBtn(btnBatal, new Color(149,165,166));
         btnP.add(btnSimpan); btnP.add(btnHapus); btnP.add(btnBatal);
 
         formPanel.add(lblF); formPanel.add(Box.createVerticalStrut(10));

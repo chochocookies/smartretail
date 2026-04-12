@@ -1,28 +1,16 @@
 package com.app.smartretail.view.master;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
+import com.app.smartretail.utils.UITheme;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
-
+import com.app.smartretail.controller.*;
 import com.app.smartretail.dao.SupplierDAO;
 import com.app.smartretail.model.Supplier;
 import com.app.smartretail.utils.AlertUtil;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
 
 public class SupplierForm extends JPanel {
 
@@ -45,7 +33,7 @@ public class SupplierForm extends JPanel {
     private void initComponents() {
         JLabel title = new JLabel("🚚 Data Supplier");
         title.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        title.setForeground(new Color(30, 55, 95));
+        title.setForeground(UITheme.ACCENT_BLUE);
         add(title, BorderLayout.NORTH);
 
         String[] cols = {"ID","Kode","Nama Supplier","Telepon","Email","Contact Person"};
@@ -53,14 +41,14 @@ public class SupplierForm extends JPanel {
         table = new JTable(tableModel); table.setRowHeight(28);
         table.setFont(new Font("Segoe UI",Font.PLAIN,12));
         table.getTableHeader().setFont(new Font("Segoe UI",Font.BOLD,12));
-        table.getTableHeader().setBackground(new Color(30,55,95));
+        table.getTableHeader().setBackground(UITheme.ACCENT_BLUE);
         table.getTableHeader().setForeground(Color.WHITE);
 
         JPanel form = new JPanel(); form.setLayout(new BoxLayout(form,BoxLayout.Y_AXIS));
         form.setBackground(Color.WHITE); form.setPreferredSize(new Dimension(260,0));
         form.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(220,220,220)),new EmptyBorder(15,15,15,15)));
 
-        JLabel lf = new JLabel("Form Supplier"); lf.setFont(new Font("Segoe UI",Font.BOLD,14)); lf.setForeground(new Color(30,55,95)); lf.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lf = new JLabel("Form Supplier"); lf.setFont(new Font("Segoe UI",Font.BOLD,14)); lf.setForeground(UITheme.ACCENT_BLUE); lf.setAlignmentX(Component.LEFT_ALIGNMENT);
         txtKode  = field("Kode Supplier", form);
         txtNama  = field("Nama Supplier *", form);
         txtAlamat= field("Alamat", form);
@@ -70,7 +58,7 @@ public class SupplierForm extends JPanel {
 
         JPanel bp = new JPanel(new FlowLayout(FlowLayout.LEFT,5,0)); bp.setOpaque(false); bp.setAlignmentX(Component.LEFT_ALIGNMENT);
         btnTambah= new JButton("➕"); btnSimpan=new JButton("💾 Simpan"); btnHapus=new JButton("🗑️"); btnBatal=new JButton("✖");
-        styleBtn(btnTambah,new Color(46,204,113)); styleBtn(btnSimpan,new Color(30,55,95)); styleBtn(btnHapus,new Color(231,76,60)); styleBtn(btnBatal,new Color(149,165,166));
+        styleBtn(btnTambah,new Color(46,204,113)); styleBtn(btnSimpan,UITheme.ACCENT_BLUE); styleBtn(btnHapus,new Color(231,76,60)); styleBtn(btnBatal,new Color(149,165,166));
         bp.add(btnTambah); bp.add(btnSimpan); bp.add(btnHapus); bp.add(btnBatal);
 
         form.add(lf); form.add(Box.createVerticalStrut(10)); form.add(Box.createVerticalStrut(10)); form.add(bp);

@@ -2,94 +2,39 @@ package com.app.smartretail.model;
 
 import java.time.LocalDateTime;
 
-/**
- * Model Barang - representasi tabel `barang` di database
- */
 public class Barang {
-
     private int id;
-    private String kodeBarang;
+    private String kodeBarang, plu, barcode, modis;
     private String namaBarang;
-    private int kategoriId;
-    private String namaKategori;
-    private int supplierId;
-    private String namaSupplier;
-    private double hargaBeli;
-    private double hargaJual;
-    private int stok;
-    private int stokMinimum;
-    private String satuan;
-    private String deskripsi;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private int kategoriId;    private String namaKategori;
+    private int supplierId;    private String namaSupplier;
+    private double hargaBeli, hargaJual;
+    private int stok, stokMinimum;
+    private String satuan, deskripsi, imageUrl;
+    private LocalDateTime createdAt, updatedAt;
 
     public Barang() {}
 
-    public Barang(String kodeBarang, String namaBarang, int kategoriId, int supplierId,
-                  double hargaBeli, double hargaJual, int stok, int stokMinimum, String satuan) {
-        this.kodeBarang = kodeBarang;
-        this.namaBarang = namaBarang;
-        this.kategoriId = kategoriId;
-        this.supplierId = supplierId;
-        this.hargaBeli = hargaBeli;
-        this.hargaJual = hargaJual;
-        this.stok = stok;
-        this.stokMinimum = stokMinimum;
-        this.satuan = satuan;
-    }
-
-    // Getters & Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
-
-    public String getKodeBarang() { return kodeBarang; }
-    public void setKodeBarang(String kodeBarang) { this.kodeBarang = kodeBarang; }
-
-    public String getNamaBarang() { return namaBarang; }
-    public void setNamaBarang(String namaBarang) { this.namaBarang = namaBarang; }
-
-    public int getKategoriId() { return kategoriId; }
-    public void setKategoriId(int kategoriId) { this.kategoriId = kategoriId; }
-
-    public String getNamaKategori() { return namaKategori; }
-    public void setNamaKategori(String namaKategori) { this.namaKategori = namaKategori; }
-
-    public int getSupplierId() { return supplierId; }
-    public void setSupplierId(int supplierId) { this.supplierId = supplierId; }
-
-    public String getNamaSupplier() { return namaSupplier; }
-    public void setNamaSupplier(String namaSupplier) { this.namaSupplier = namaSupplier; }
-
-    public double getHargaBeli() { return hargaBeli; }
-    public void setHargaBeli(double hargaBeli) { this.hargaBeli = hargaBeli; }
-
-    public double getHargaJual() { return hargaJual; }
-    public void setHargaJual(double hargaJual) { this.hargaJual = hargaJual; }
-
-    public int getStok() { return stok; }
-    public void setStok(int stok) { this.stok = stok; }
-
-    public int getStokMinimum() { return stokMinimum; }
-    public void setStokMinimum(int stokMinimum) { this.stokMinimum = stokMinimum; }
-
-    public String getSatuan() { return satuan; }
-    public void setSatuan(String satuan) { this.satuan = satuan; }
-
-    public String getDeskripsi() { return deskripsi; }
-    public void setDeskripsi(String deskripsi) { this.deskripsi = deskripsi; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    public boolean isStokRendah() {
-        return stok <= stokMinimum;
-    }
-
-    @Override
-    public String toString() {
-        return "[" + kodeBarang + "] " + namaBarang;
-    }
+    // Getters / Setters
+    public int getId(){return id;} public void setId(int id){this.id=id;}
+    public String getKodeBarang(){return kodeBarang;} public void setKodeBarang(String k){this.kodeBarang=k;}
+    public String getPlu(){return plu;} public void setPlu(String p){this.plu=p;}
+    public String getBarcode(){return barcode;} public void setBarcode(String b){this.barcode=b;}
+    public String getModis(){return modis;} public void setModis(String m){this.modis=m;}
+    public String getNamaBarang(){return namaBarang;} public void setNamaBarang(String n){this.namaBarang=n;}
+    public int getKategoriId(){return kategoriId;} public void setKategoriId(int i){this.kategoriId=i;}
+    public String getNamaKategori(){return namaKategori;} public void setNamaKategori(String n){this.namaKategori=n;}
+    public int getSupplierId(){return supplierId;} public void setSupplierId(int i){this.supplierId=i;}
+    public String getNamaSupplier(){return namaSupplier;} public void setNamaSupplier(String n){this.namaSupplier=n;}
+    public double getHargaBeli(){return hargaBeli;} public void setHargaBeli(double h){this.hargaBeli=h;}
+    public double getHargaJual(){return hargaJual;} public void setHargaJual(double h){this.hargaJual=h;}
+    public int getStok(){return stok;} public void setStok(int s){this.stok=s;}
+    public int getStokMinimum(){return stokMinimum;} public void setStokMinimum(int s){this.stokMinimum=s;}
+    public String getSatuan(){return satuan;} public void setSatuan(String s){this.satuan=s;}
+    public String getDeskripsi(){return deskripsi;} public void setDeskripsi(String d){this.deskripsi=d;}
+    public String getImageUrl(){return imageUrl;} public void setImageUrl(String u){this.imageUrl=u;}
+    public LocalDateTime getCreatedAt(){return createdAt;} public void setCreatedAt(LocalDateTime t){this.createdAt=t;}
+    public LocalDateTime getUpdatedAt(){return updatedAt;} public void setUpdatedAt(LocalDateTime t){this.updatedAt=t;}
+    public boolean isStokRendah(){return stok<=stokMinimum;}
+    @Override public String toString(){return "["+kodeBarang+"] "+namaBarang;}
 }

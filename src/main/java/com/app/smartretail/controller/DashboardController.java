@@ -1,12 +1,12 @@
 package com.app.smartretail.controller;
 
+import com.app.smartretail.dao.ReportDAO;
+import com.app.smartretail.model.Barang;
+import com.app.smartretail.dao.BarangDAO;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-
-import com.app.smartretail.dao.BarangDAO;
-import com.app.smartretail.dao.ReportDAO;
-import com.app.smartretail.model.Barang;
 
 public class DashboardController {
 

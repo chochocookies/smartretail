@@ -1,304 +1,197 @@
 package com.app.smartretail.view.master;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
-import java.util.List;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTable;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-
 import com.app.smartretail.controller.BarangController;
 import com.app.smartretail.model.Barang;
-import com.app.smartretail.utils.AlertUtil;
-import com.app.smartretail.utils.FormatUtil;
-import com.app.smartretail.utils.Session;
-import com.app.smartretail.utils.UITheme;
+import com.app.smartretail.utils.*;
+import com.app.smartretail.view.component.Icons;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.*;
+import java.awt.*;
+import java.util.List;
 
 public class BarangForm extends JPanel {
 
     private final BarangController ctrl = new BarangController();
-    private JTable table;
-    private DefaultTableModel tableModel;
-    private JTextField txtSearch, txtKode, txtNama, txtHargaBeli, txtHargaJual, txtStok, txtStokMin, txtSatuan;
-    private JTextArea txtDeskripsi;
+    private JTable table; private DefaultTableModel mdl;
+    private JTextField txtSearch, txtKode, txtNama, txtHargaBeli, txtHargaJual,
+                       txtStok, txtStokMin, txtSatuan, txtImgUrl;
+    private JTextArea txtDesk;
     private JButton btnTambah, btnEdit, btnHapus, btnSimpan, btnBatal, btnRefresh;
-    private JLabel lblFormTitle;
-    private int selectedId = -1;
-    private boolean editMode = false;
+    private JLabel lblFormTitle, lblPreview;
+    private int selId = -1;
 
     public BarangForm() {
-        setLayout(new BorderLayout(0, 0));
-        setBackground(UITheme.BG_DARK);
-        setBorder(new EmptyBorder(24, 28, 24, 28));
-        build();
-        loadData();
+        setLayout(new BorderLayout()); setBackground(UITheme.BG_SURFACE);
+        setBorder(new EmptyBorder(22,24,22,24));
+        build(); load();
     }
 
     private void build() {
         // Header
         JPanel hdr = new JPanel(new BorderLayout());
-        hdr.setOpaque(false);
-        hdr.setBorder(new EmptyBorder(0, 0, 20, 0));
-        JLabel title = UITheme.pageTitle("Data Barang");
-        JLabel sub = new JLabel("Kelola semua data produk & inventaris");
-        sub.setFont(UITheme.FONT_BODY); sub.setForeground(UITheme.TEXT_SECONDARY);
-        JPanel ht = new JPanel(); ht.setOpaque(false);
-        ht.setLayout(new BoxLayout(ht, BoxLayout.Y_AXIS));
-        ht.add(title); ht.add(sub);
+        hdr.setOpaque(false); hdr.setBorder(new EmptyBorder(0,0,16,0));
+        JPanel ht = new JPanel(); ht.setOpaque(false); ht.setLayout(new BoxLayout(ht, BoxLayout.Y_AXIS));
+        ht.add(UITheme.pageTitle("Products")); JLabel sub=new JLabel("Kelola data produk & inventaris");
+        sub.setFont(UITheme.FONT_BODY); sub.setForeground(UITheme.TEXT_SECONDARY); ht.add(sub);
         hdr.add(ht, BorderLayout.WEST);
-
-        JPanel actBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actBtns.setOpaque(false);
-        btnTambah  = UITheme.primaryButton("+ Tambah", UITheme.ACCENT_BLUE);
-        btnEdit    = UITheme.ghostButton("Edit", UITheme.ACCENT_AMBER);
-        btnHapus   = UITheme.dangerButton("Hapus");
+        JPanel acts = new JPanel(new FlowLayout(FlowLayout.RIGHT,8,0)); acts.setOpaque(false);
         btnRefresh = UITheme.ghostButton("↻", UITheme.TEXT_MUTED);
-        actBtns.add(btnRefresh); actBtns.add(btnHapus); actBtns.add(btnEdit); actBtns.add(btnTambah);
-        hdr.add(actBtns, BorderLayout.EAST);
+        btnHapus   = UITheme.dangerButton("Hapus");
+        btnEdit    = UITheme.ghostButton("Edit", UITheme.ACCENT_AMBER);
+        btnTambah  = UITheme.primaryButton("+ Tambah", UITheme.ACCENT_LIME);
+        acts.add(btnRefresh); acts.add(btnHapus); acts.add(btnEdit); acts.add(btnTambah);
+        hdr.add(acts, BorderLayout.EAST);
         add(hdr, BorderLayout.NORTH);
 
-        // ── MAIN: table + form split ──────────────────────────────────
-        JPanel main = new JPanel(new BorderLayout(16, 0));
-        main.setOpaque(false);
+        // Main split
+        JPanel main = new JPanel(new BorderLayout(16,0)); main.setOpaque(false);
 
-        // Left: search + table
-        JPanel leftPanel = new JPanel(new BorderLayout(0, 12));
-        leftPanel.setOpaque(false);
-
-        // Search bar
-        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
-        searchBar.setOpaque(false);
-        txtSearch = UITheme.styledField("Cari kode atau nama barang…");
-        txtSearch.setPreferredSize(new Dimension(0, 38));
-        JButton btnSearch = UITheme.primaryButton("Cari", UITheme.ACCENT_BLUE);
-        searchBar.add(txtSearch, BorderLayout.CENTER);
-        searchBar.add(btnSearch, BorderLayout.EAST);
+        // Search
+        JPanel searchRow = new JPanel(new BorderLayout(8,0)); searchRow.setOpaque(false);
+        txtSearch = UITheme.styledField("Cari kode, nama, PLU, barcode…");
+        txtSearch.setPreferredSize(new Dimension(0,38));
+        JButton btnS = UITheme.primaryButton("Cari", UITheme.ACCENT_BLUE);
+        searchRow.add(txtSearch, BorderLayout.CENTER); searchRow.add(btnS, BorderLayout.EAST);
 
         // Table
-        String[] cols = {"", "Kode", "Nama Barang", "Kategori", "Harga Jual", "Stok", "Satuan", "Status"};
-        tableModel = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int r, int c) { return false; }
-        };
-        table = new JTable(tableModel);
-        UITheme.styleTable(table);
-        table.getColumnModel().getColumn(0).setMaxWidth(40);
+        String[] cols = {"#","Kode","PLU","Nama Barang","Harga Jual","Stok","Status"};
+        mdl = new DefaultTableModel(cols,0){ public boolean isCellEditable(int r,int c){return false;} };
+        table = new JTable(mdl); UITheme.styleTable(table);
+        table.getColumnModel().getColumn(0).setMaxWidth(38);
+        table.getColumnModel().getColumn(1).setPreferredWidth(80);
+        table.getColumnModel().getColumn(2).setPreferredWidth(80);
         table.getColumnModel().getColumn(5).setMaxWidth(60);
-        table.getColumnModel().getColumn(7).setMaxWidth(100);
-        table.setDefaultRenderer(Object.class, new StatusRowRenderer());
+        table.getColumnModel().getColumn(6).setMaxWidth(90);
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer(){
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c){
+                Component cp=super.getTableCellRendererComponent(t,v,sel,foc,r,c);
+                cp.setBackground(sel?new Color(238,242,255):(r%2==0?UITheme.BG_CARD:UITheme.BG_ROW_ALT));
+                cp.setForeground(c==6?(v!=null&&"Rendah".equals(v.toString())?UITheme.ACCENT_CORAL:UITheme.ACCENT_GREEN):UITheme.TEXT_PRIMARY);
+                if(c==4) cp.setForeground(UITheme.ACCENT_BLUE);
+                ((JLabel)cp).setBorder(new EmptyBorder(0,12,0,12));
+                return cp;
+            }
+        });
 
-        leftPanel.add(searchBar, BorderLayout.NORTH);
-        leftPanel.add(UITheme.styledScroll(table), BorderLayout.CENTER);
+        JPanel leftP = new JPanel(new BorderLayout(0,10)); leftP.setOpaque(false);
+        leftP.add(searchRow, BorderLayout.NORTH);
+        leftP.add(UITheme.styledScroll(table), BorderLayout.CENTER);
 
-        // Right: form panel
-        JPanel formCard = UITheme.card();
-        formCard.setLayout(new BoxLayout(formCard, BoxLayout.Y_AXIS));
-        formCard.setPreferredSize(new Dimension(290, 0));
-        formCard.setMaximumSize(new Dimension(290, Integer.MAX_VALUE));
+        // Form card
+        JPanel fc = UITheme.card();
+        fc.setLayout(new BoxLayout(fc, BoxLayout.Y_AXIS));
+        fc.setPreferredSize(new Dimension(296,0)); fc.setMaximumSize(new Dimension(296,Integer.MAX_VALUE));
 
-        lblFormTitle = new JLabel("Detail Barang");
-        lblFormTitle.setFont(UITheme.FONT_H2);
-        lblFormTitle.setForeground(UITheme.TEXT_PRIMARY);
-        lblFormTitle.setAlignmentX(LEFT_ALIGNMENT);
+        lblFormTitle = new JLabel("Detail Produk");
+        lblFormTitle.setFont(UITheme.FONT_H2); lblFormTitle.setForeground(UITheme.TEXT_PRIMARY); lblFormTitle.setAlignmentX(LEFT_ALIGNMENT);
 
-        JSeparator sep = UITheme.separator();
-        sep.setAlignmentX(LEFT_ALIGNMENT);
+        lblPreview = new JLabel(ImageLoader.getPlaceholder());
+        lblPreview.setPreferredSize(new Dimension(258,120)); lblPreview.setMaximumSize(new Dimension(Integer.MAX_VALUE,120));
+        lblPreview.setHorizontalAlignment(SwingConstants.CENTER);
+        lblPreview.setBorder(BorderFactory.createCompoundBorder(new UITheme.RoundedBorder(8,UITheme.BORDER_DEFAULT,UITheme.BG_INPUT),new EmptyBorder(4,4,4,4)));
+        lblPreview.setAlignmentX(LEFT_ALIGNMENT);
 
-        txtKode      = addFormField(formCard, "Kode Barang");
-        txtNama      = addFormField(formCard, "Nama Barang *");
-        txtHargaBeli = addFormField(formCard, "Harga Beli");
-        txtHargaJual = addFormField(formCard, "Harga Jual *");
-        txtStok      = addFormField(formCard, "Stok Awal");
-        txtStokMin   = addFormField(formCard, "Stok Minimum");
-        txtSatuan    = addFormField(formCard, "Satuan (pcs / kg / dll)");
+        txtKode      = fld("Kode Barang", fc);
+        txtNama      = fld("Nama Barang *", fc);
+        txtHargaBeli = fld("Harga Beli (Rp)", fc);
+        txtHargaJual = fld("Harga Jual (Rp) *", fc);
+        txtStok      = fld("Stok Awal", fc);
+        txtStokMin   = fld("Stok Minimum", fc);
+        txtSatuan    = fld("Satuan (pcs/kg/btl)", fc);
+        txtImgUrl    = fld("URL Gambar", fc);
 
-        JLabel lDesk = UITheme.fieldLabel("Deskripsi");
-        lDesk.setAlignmentX(LEFT_ALIGNMENT);
-        txtDeskripsi = new JTextArea(3, 0);
-        txtDeskripsi.setFont(UITheme.FONT_BODY);
-        txtDeskripsi.setForeground(UITheme.TEXT_PRIMARY);
-        txtDeskripsi.setBackground(UITheme.BG_INPUT);
-        txtDeskripsi.setCaretColor(UITheme.ACCENT_BLUE);
-        txtDeskripsi.setLineWrap(true);
-        txtDeskripsi.setBorder(BorderFactory.createCompoundBorder(
-            new UITheme.RoundedBorder(8, UITheme.BORDER_DEFAULT),
-            new EmptyBorder(8, 10, 8, 10)));
-        JScrollPane spDesk = new JScrollPane(txtDeskripsi);
-        spDesk.setBorder(BorderFactory.createEmptyBorder());
-        spDesk.setBackground(UITheme.BG_INPUT);
-        spDesk.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        spDesk.setAlignmentX(LEFT_ALIGNMENT);
+        JButton btnPrev = UITheme.ghostButton("Muat Gambar", UITheme.ACCENT_TEAL);
+        btnPrev.setMaximumSize(new Dimension(Integer.MAX_VALUE,30)); btnPrev.setAlignmentX(LEFT_ALIGNMENT);
+        btnPrev.addActionListener(e -> { String u=txtImgUrl.getText().trim(); if(!u.isEmpty()) ImageLoader.loadAsync(u,258,120,icon->{lblPreview.setIcon(icon);lblPreview.setText(null);}); });
 
-        // Form action buttons
-        JPanel btnRow = new JPanel(new GridLayout(1, 2, 8, 0));
-        btnRow.setOpaque(false);
-        btnRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        btnRow.setAlignmentX(LEFT_ALIGNMENT);
-        btnSimpan = UITheme.primaryButton("Simpan", UITheme.ACCENT_BLUE);
-        btnBatal  = UITheme.ghostButton("Batal", UITheme.TEXT_MUTED);
+        JLabel lD=UITheme.fieldLabel("Deskripsi"); lD.setAlignmentX(LEFT_ALIGNMENT);
+        txtDesk = new JTextArea(2,0); txtDesk.setFont(UITheme.FONT_BODY); txtDesk.setForeground(UITheme.TEXT_PRIMARY);
+        txtDesk.setBackground(UITheme.BG_INPUT); txtDesk.setCaretColor(UITheme.ACCENT_BLUE);
+        txtDesk.setLineWrap(true); txtDesk.setBorder(new EmptyBorder(7,10,7,10));
+        JScrollPane spD=new JScrollPane(txtDesk); spD.setBorder(new UITheme.RoundedBorder(8,UITheme.BORDER_DEFAULT,null));
+        spD.setBackground(UITheme.BG_INPUT); spD.getViewport().setBackground(UITheme.BG_INPUT);
+        spD.setMaximumSize(new Dimension(Integer.MAX_VALUE,60)); spD.setAlignmentX(LEFT_ALIGNMENT);
+
+        JPanel btnRow=new JPanel(new GridLayout(1,2,8,0)); btnRow.setOpaque(false);
+        btnRow.setMaximumSize(new Dimension(Integer.MAX_VALUE,34)); btnRow.setAlignmentX(LEFT_ALIGNMENT);
+        btnSimpan=UITheme.primaryButton("Simpan",UITheme.ACCENT_LIME);
+        btnBatal=UITheme.ghostButton("Batal",UITheme.TEXT_SECONDARY);
         btnRow.add(btnBatal); btnRow.add(btnSimpan);
 
-        formCard.add(lblFormTitle);
-        formCard.add(Box.createVerticalStrut(8));
-        formCard.add(sep);
-        formCard.add(Box.createVerticalStrut(12));
-        formCard.add(lDesk);
-        formCard.add(Box.createVerticalStrut(5));
-        formCard.add(spDesk);
-        formCard.add(Box.createVerticalStrut(14));
-        formCard.add(Box.createVerticalGlue());
-        formCard.add(btnRow);
+        fc.add(lblFormTitle); fc.add(Box.createVerticalStrut(8));
+        fc.add(UITheme.separator()); fc.add(Box.createVerticalStrut(8));
+        fc.add(lblPreview); fc.add(Box.createVerticalStrut(4));
+        fc.add(btnPrev); fc.add(Box.createVerticalStrut(8));
+        fc.add(lD); fc.add(Box.createVerticalStrut(4));
+        fc.add(spD); fc.add(Box.createVerticalStrut(10));
+        fc.add(Box.createVerticalGlue()); fc.add(btnRow);
 
-        main.add(leftPanel, BorderLayout.CENTER);
-        main.add(formCard, BorderLayout.EAST);
+        main.add(leftP, BorderLayout.CENTER);
+        main.add(fc, BorderLayout.EAST);
         add(main, BorderLayout.CENTER);
 
-        // ── Events ───────────────────────────────────────────────────
-        setFormEnabled(false);
-        btnSearch.addActionListener(e -> search());
-        txtSearch.addActionListener(e -> search());
-        btnRefresh.addActionListener(e -> loadData());
-        btnTambah.addActionListener(e -> startNew());
-        btnEdit.addActionListener(e -> startEdit());
-        btnHapus.addActionListener(e -> hapus());
-        btnSimpan.addActionListener(e -> simpan());
-        btnBatal.addActionListener(e -> cancelForm());
-        table.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) fillForm();
-        });
+        setFE(false);
+        btnS.addActionListener(e->{String kw=txtSearch.getText().trim();fill(kw.isEmpty()?ctrl.getAllBarang():ctrl.searchBarang(kw));});
+        txtSearch.addActionListener(e->btnS.doClick());
+        btnRefresh.addActionListener(e->load());
+        btnTambah.addActionListener(e->startNew());
+        btnEdit.addActionListener(e->{if(table.getSelectedRow()<0){AlertUtil.showWarning(this,"Pilih barang!");return;}setFE(true);lblFormTitle.setText("Edit: "+txtNama.getText());});
+        btnHapus.addActionListener(e->hapus());
+        btnSimpan.addActionListener(e->simpan());
+        btnBatal.addActionListener(e->{clearF();setFE(false);lblFormTitle.setText("Detail Produk");});
+        table.getSelectionModel().addListSelectionListener(e->{if(!e.getValueIsAdjusting())fillForm();});
     }
 
-    private JTextField addFormField(JPanel parent, String label) {
-        JLabel lbl = UITheme.fieldLabel(label);
-        lbl.setAlignmentX(LEFT_ALIGNMENT);
-        JTextField f = UITheme.styledField("");
-        f.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        f.setAlignmentX(LEFT_ALIGNMENT);
-        parent.add(lbl);
-        parent.add(Box.createVerticalStrut(5));
-        parent.add(f);
-        parent.add(Box.createVerticalStrut(10));
+    private JTextField fld(String label, JPanel p) {
+        JLabel lbl=UITheme.fieldLabel(label); lbl.setAlignmentX(LEFT_ALIGNMENT);
+        JTextField f=UITheme.styledField(""); f.setMaximumSize(new Dimension(Integer.MAX_VALUE,34)); f.setAlignmentX(LEFT_ALIGNMENT);
+        p.add(lbl); p.add(Box.createVerticalStrut(4)); p.add(f); p.add(Box.createVerticalStrut(8));
         return f;
     }
 
-    private void loadData() { fillTable(ctrl.getAllBarang()); }
-    private void search() {
-        String kw = txtSearch.getText().trim();
-        fillTable(kw.isEmpty() ? ctrl.getAllBarang() : ctrl.searchBarang(kw));
+    private void load(){fill(ctrl.getAllBarang());}
+    private void fill(List<Barang> list){
+        mdl.setRowCount(0); int n=1;
+        for(Barang b:list) mdl.addRow(new Object[]{n++,b.getKodeBarang(),b.getPlu()!=null?b.getPlu():"-",b.getNamaBarang(),FormatUtil.formatRupiah(b.getHargaJual()),b.getStok(),b.isStokRendah()?"Rendah":"OK"});
     }
-
-    private void fillTable(List<Barang> list) {
-        tableModel.setRowCount(0);
-        int no = 1;
-        for (Barang b : list) {
-            tableModel.addRow(new Object[]{
-                no++, b.getKodeBarang(), b.getNamaBarang(), b.getNamaKategori(),
-                FormatUtil.formatRupiah(b.getHargaJual()), b.getStok(), b.getSatuan(),
-                b.isStokRendah() ? "Rendah" : "OK"
-            });
+    private void fillForm(){
+        int row=table.getSelectedRow(); if(row<0)return;
+        String kode=mdl.getValueAt(row,1).toString();
+        List<Barang> all=ctrl.getAllBarang();
+        for(Barang b:all) if(b.getKodeBarang().equals(kode)){
+            selId=b.getId(); txtKode.setText(b.getKodeBarang()); txtNama.setText(b.getNamaBarang());
+            txtHargaBeli.setText(String.valueOf((long)b.getHargaBeli())); txtHargaJual.setText(String.valueOf((long)b.getHargaJual()));
+            txtStok.setText(String.valueOf(b.getStok())); txtStokMin.setText(String.valueOf(b.getStokMinimum()));
+            txtSatuan.setText(b.getSatuan()!=null?b.getSatuan():"");
+            txtDesk.setText(b.getDeskripsi()!=null?b.getDeskripsi():"");
+            txtImgUrl.setText(b.getImageUrl()!=null?b.getImageUrl():"");
+            lblFormTitle.setText(b.getNamaBarang().length()>20?b.getNamaBarang().substring(0,19)+"…":b.getNamaBarang());
+            if(b.getImageUrl()!=null&&!b.getImageUrl().isEmpty()) ImageLoader.loadAsync(b.getImageUrl(),258,120,ic->{lblPreview.setIcon(ic);lblPreview.setText(null);});
+            else lblPreview.setIcon(ImageLoader.getPlaceholder());
+            break;
         }
     }
-
-    private void fillForm() {
-        int row = table.getSelectedRow();
-        if (row < 0) return;
-        selectedId = (int) tableModel.getValueAt(row, 0);
-        txtKode.setText(tableModel.getValueAt(row, 1).toString());
-        txtNama.setText(tableModel.getValueAt(row, 2).toString());
-        txtHargaJual.setText(tableModel.getValueAt(row, 4).toString().replaceAll("[^\\d]", ""));
-        String status = tableModel.getValueAt(row, 7).toString();
-        lblFormTitle.setText(tableModel.getValueAt(row, 2).toString());
+    private void startNew(){clearF();setFE(true);selId=-1;lblFormTitle.setText("Tambah Produk Baru");txtKode.setText(ctrl.generateKode());}
+    private void hapus(){
+        if(table.getSelectedRow()<0){AlertUtil.showWarning(this,"Pilih barang!");return;}
+        if(!Session.isAdmin()){AlertUtil.showWarning(this,"Hanya Admin yang dapat menghapus.");return;}
+        if(!AlertUtil.showConfirm(this,"Hapus barang ini?")) return;
+        if(ctrl.hapusBarang(selId)){AlertUtil.showInfo(this,"Barang berhasil dihapus.");load();clearF();setFE(false);}
+        else AlertUtil.showError(this,"Gagal menghapus.");
     }
-
-    private void startNew() {
-        clearForm(); setFormEnabled(true); editMode = false;
-        selectedId = -1;
-        lblFormTitle.setText("Tambah Barang Baru");
-        txtKode.setText(ctrl.generateKode());
+    private void simpan(){
+        if(txtNama.getText().isBlank()||txtHargaJual.getText().isBlank()){AlertUtil.showWarning(this,"Nama dan harga jual wajib diisi!");return;}
+        Barang b=new Barang(); b.setId(selId); b.setKodeBarang(txtKode.getText().trim());
+        b.setNamaBarang(txtNama.getText().trim()); b.setHargaBeli(FormatUtil.parseDouble(txtHargaBeli.getText()));
+        b.setHargaJual(FormatUtil.parseDouble(txtHargaJual.getText())); b.setStok(FormatUtil.parseInt(txtStok.getText()));
+        b.setStokMinimum(FormatUtil.parseInt(txtStokMin.getText())); b.setSatuan(txtSatuan.getText().trim());
+        b.setDeskripsi(txtDesk.getText().trim()); b.setImageUrl(txtImgUrl.getText().trim());
+        boolean ok=(selId==-1)?ctrl.tambahBarang(b):ctrl.updateBarang(b);
+        if(ok){AlertUtil.showInfo(this,"Data barang berhasil disimpan!");load();clearF();setFE(false);}
+        else AlertUtil.showError(this,"Gagal menyimpan.");
     }
-
-    private void startEdit() {
-        if (table.getSelectedRow() < 0) { AlertUtil.showWarning(this, "Pilih barang terlebih dahulu!"); return; }
-        setFormEnabled(true); editMode = true;
-        lblFormTitle.setText("Edit: " + txtNama.getText());
-    }
-
-    private void hapus() {
-        if (table.getSelectedRow() < 0) { AlertUtil.showWarning(this, "Pilih barang terlebih dahulu!"); return; }
-        if (!Session.isAdmin()) { AlertUtil.showWarning(this, "Hanya Admin yang dapat menghapus data."); return; }
-        if (!AlertUtil.showConfirm(this, "Hapus barang ini?")) return;
-        if (ctrl.hapusBarang(selectedId)) {
-            AlertUtil.showInfo(this, "Barang berhasil dihapus.");
-            loadData(); clearForm(); setFormEnabled(false);
-        } else AlertUtil.showError(this, "Gagal menghapus barang.");
-    }
-
-    private void simpan() {
-        if (txtNama.getText().isBlank() || txtHargaJual.getText().isBlank()) {
-            AlertUtil.showWarning(this, "Nama barang dan harga jual wajib diisi!"); return;
-        }
-        Barang b = new Barang();
-        b.setId(selectedId);
-        b.setKodeBarang(txtKode.getText().trim());
-        b.setNamaBarang(txtNama.getText().trim());
-        b.setHargaBeli(FormatUtil.parseDouble(txtHargaBeli.getText()));
-        b.setHargaJual(FormatUtil.parseDouble(txtHargaJual.getText()));
-        b.setStok(FormatUtil.parseInt(txtStok.getText()));
-        b.setStokMinimum(FormatUtil.parseInt(txtStokMin.getText()));
-        b.setSatuan(txtSatuan.getText().trim());
-        b.setDeskripsi(txtDeskripsi.getText().trim());
-
-        boolean ok = (selectedId == -1) ? ctrl.tambahBarang(b) : ctrl.updateBarang(b);
-        if (ok) {
-            AlertUtil.showInfo(this, "Data barang berhasil disimpan!");
-            loadData(); clearForm(); setFormEnabled(false);
-        } else AlertUtil.showError(this, "Gagal menyimpan data.");
-    }
-
-    private void cancelForm() { clearForm(); setFormEnabled(false); lblFormTitle.setText("Detail Barang"); }
-
-    private void clearForm() {
-        selectedId = -1;
-        txtKode.setText(""); txtNama.setText(""); txtHargaBeli.setText("");
-        txtHargaJual.setText(""); txtStok.setText(""); txtStokMin.setText("");
-        txtSatuan.setText(""); txtDeskripsi.setText("");
-    }
-
-    private void setFormEnabled(boolean e) {
-        txtKode.setEnabled(e); txtNama.setEnabled(e); txtHargaBeli.setEnabled(e);
-        txtHargaJual.setEnabled(e); txtStok.setEnabled(e); txtStokMin.setEnabled(e);
-        txtSatuan.setEnabled(e); txtDeskripsi.setEnabled(e);
-        btnSimpan.setEnabled(e); btnBatal.setEnabled(e);
-    }
-
-    // Custom row renderer for status column
-    private class StatusRowRenderer extends DefaultTableCellRenderer {
-        @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c) {
-            Component comp = super.getTableCellRendererComponent(t, v, sel, foc, r, c);
-            comp.setBackground(sel ? new Color(82,130,255,40) :
-                (r%2==0 ? UITheme.BG_CARD : UITheme.BG_ROW_ALT));
-            comp.setForeground(UITheme.TEXT_PRIMARY);
-            if (c == 7 && v != null) {
-                if ("Rendah".equals(v.toString())) comp.setForeground(UITheme.ACCENT_CORAL);
-                else comp.setForeground(UITheme.ACCENT_TEAL);
-            }
-            setBorder(new EmptyBorder(0,10,0,10));
-            return comp;
-        }
-    }
+    private void clearF(){selId=-1;txtKode.setText("");txtNama.setText("");txtHargaBeli.setText("");txtHargaJual.setText("");txtStok.setText("");txtStokMin.setText("");txtSatuan.setText("");txtDesk.setText("");txtImgUrl.setText("");lblPreview.setIcon(ImageLoader.getPlaceholder());}
+    private void setFE(boolean e){txtKode.setEnabled(e);txtNama.setEnabled(e);txtHargaBeli.setEnabled(e);txtHargaJual.setEnabled(e);txtStok.setEnabled(e);txtStokMin.setEnabled(e);txtSatuan.setEnabled(e);txtDesk.setEnabled(e);txtImgUrl.setEnabled(e);btnSimpan.setEnabled(e);btnBatal.setEnabled(e);}
 }

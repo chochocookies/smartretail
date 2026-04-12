@@ -1,34 +1,17 @@
 package com.app.smartretail.view.master;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
+import com.app.smartretail.utils.UITheme;
 
 import com.app.smartretail.dao.UserDAO;
 import com.app.smartretail.model.User;
 import com.app.smartretail.utils.AlertUtil;
 import com.app.smartretail.utils.PasswordHasher;
 import com.app.smartretail.utils.Session;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
 
 public class UserForm extends JPanel {
 
@@ -57,13 +40,13 @@ public class UserForm extends JPanel {
 
     private void build() {
         JLabel title = new JLabel("👤 Kelola User");
-        title.setFont(new Font("Segoe UI",Font.BOLD,20)); title.setForeground(new Color(30,55,95));
+        title.setFont(new Font("Segoe UI",Font.BOLD,20)); title.setForeground(UITheme.ACCENT_BLUE);
         add(title, BorderLayout.NORTH);
 
         String[] cols = {"ID","Username","Nama Lengkap","Email","Role","Status"};
         tableModel = new DefaultTableModel(cols,0){ public boolean isCellEditable(int r,int c){return false;} };
         table = new JTable(tableModel); table.setRowHeight(28);
-        table.getTableHeader().setBackground(new Color(30,55,95)); table.getTableHeader().setForeground(Color.WHITE);
+        table.getTableHeader().setBackground(UITheme.ACCENT_BLUE); table.getTableHeader().setForeground(Color.WHITE);
         table.getTableHeader().setFont(new Font("Segoe UI",Font.BOLD,12));
         table.setFont(new Font("Segoe UI",Font.PLAIN,12));
 
@@ -71,7 +54,7 @@ public class UserForm extends JPanel {
         form.setBackground(Color.WHITE); form.setPreferredSize(new Dimension(270,0));
         form.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(220,220,220)),new EmptyBorder(15,15,15,15)));
 
-        JLabel lf = new JLabel("Form User"); lf.setFont(new Font("Segoe UI",Font.BOLD,14)); lf.setForeground(new Color(30,55,95)); lf.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lf = new JLabel("Form User"); lf.setFont(new Font("Segoe UI",Font.BOLD,14)); lf.setForeground(UITheme.ACCENT_BLUE); lf.setAlignmentX(Component.LEFT_ALIGNMENT);
         form.add(lf); form.add(Box.createVerticalStrut(10));
 
         JLabel lu=new JLabel("Username *"); lu.setFont(new Font("Segoe UI",Font.BOLD,11)); lu.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -100,7 +83,7 @@ public class UserForm extends JPanel {
 
         JPanel bp=new JPanel(new FlowLayout(FlowLayout.LEFT,5,0)); bp.setOpaque(false); bp.setAlignmentX(Component.LEFT_ALIGNMENT);
         btnTambah=new JButton("➕"); btnSimpan=new JButton("💾 Simpan"); btnHapus=new JButton("🗑️ Hapus"); btnBatal=new JButton("✖");
-        sb(btnTambah,new Color(46,204,113)); sb(btnSimpan,new Color(30,55,95)); sb(btnHapus,new Color(231,76,60)); sb(btnBatal,new Color(149,165,166));
+        sb(btnTambah,new Color(46,204,113)); sb(btnSimpan,UITheme.ACCENT_BLUE); sb(btnHapus,new Color(231,76,60)); sb(btnBatal,new Color(149,165,166));
         bp.add(btnTambah); bp.add(btnSimpan); bp.add(btnHapus); bp.add(btnBatal);
         form.add(bp);
 

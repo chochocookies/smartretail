@@ -1,10 +1,8 @@
 package com.app.smartretail;
 
-
-import javax.swing.SwingUtilities;
-
 import com.app.smartretail.utils.UITheme;
 import com.app.smartretail.view.auth.LoginForm;
+import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {

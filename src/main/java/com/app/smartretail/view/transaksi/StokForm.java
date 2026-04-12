@@ -1,30 +1,17 @@
 package com.app.smartretail.view.transaksi;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.util.List;
-
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-
 import com.app.smartretail.controller.BarangController;
 import com.app.smartretail.model.Barang;
 import com.app.smartretail.utils.AlertUtil;
 import com.app.smartretail.utils.FormatUtil;
 import com.app.smartretail.utils.UITheme;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
 
 public class StokForm extends JPanel {
 
@@ -39,7 +26,7 @@ public class StokForm extends JPanel {
 
     public StokForm() {
         setLayout(new BorderLayout(0, 0));
-        setBackground(UITheme.BG_DARK);
+        setBackground(UITheme.BG_SURFACE);
         setBorder(new EmptyBorder(24, 28, 24, 28));
         build();
         load();

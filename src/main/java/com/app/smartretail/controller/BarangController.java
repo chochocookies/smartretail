@@ -1,9 +1,9 @@
 package com.app.smartretail.controller;
 
-import java.util.List;
-
 import com.app.smartretail.dao.BarangDAO;
 import com.app.smartretail.model.Barang;
+
+import java.util.List;
 
 public class BarangController {
 
