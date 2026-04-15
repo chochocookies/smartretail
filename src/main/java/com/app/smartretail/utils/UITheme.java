@@ -1,36 +1,12 @@
 package com.app.smartretail.utils;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.geom.GeneralPath;
-
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.UIManager;
-import javax.swing.border.Border;
-import javax.swing.border.EmptyBorder;
+import javax.swing.*;
+import javax.swing.border.*;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.table.JTableHeader;
+
+import java.awt.*;
+import java.awt.geom.*;
 
 /**
  * UITheme — Starline-inspired design system.
@@ -310,6 +286,7 @@ public class UITheme {
         hdr.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_DEFAULT));
         hdr.setReorderingAllowed(false);
     }
+
 
     // ── ScrollPane ────────────────────────────────────────────────
     public static JScrollPane styledScroll(Component c) {

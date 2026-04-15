@@ -17,14 +17,12 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -45,68 +43,67 @@ import com.app.smartretail.view.component.Icons;
 
 public class PenjualanForm extends JPanel {
 
-    private final TransaksiController trxCtrl   = new TransaksiController();
+    private final TransaksiController trxCtrl  = new TransaksiController();
     private final BarangController    barangCtrl = new BarangController();
 
     private JTextField txtScan, txtBayar, txtDiskon;
     private JLabel lblNo, lblSub, lblGrand, lblKembalian;
-    private JTable cart;
-    private DefaultTableModel cartMdl;
+    private JTable cart; private DefaultTableModel cartMdl;
     private JComboBox<String> cmbMetode;
     private JButton btnProses, btnReset;
     private Transaksi trx;
 
     public PenjualanForm() {
-        setLayout(new BorderLayout());
-        setBackground(UITheme.BG_SURFACE);
-        setBorder(new EmptyBorder(22, 24, 22, 24));
-        build();
-        reset();
+        setLayout(new BorderLayout()); setBackground(UITheme.BG_SURFACE);
+        setBorder(new EmptyBorder(22,24,22,24));
+        build(); reset();
     }
 
     private void build() {
         // Header
         JPanel hdr = pageHeader("POS  —  Point of Sale",
-                "Transaksi penjualan kasir", null, "Riwayat");
+            "Transaksi penjualan kasir", null, "Riwayat");
         add(hdr, BorderLayout.NORTH);
 
-        JPanel main = new JPanel(new BorderLayout(16, 0));
+        JPanel main = new JPanel(new BorderLayout(16,0));
         main.setOpaque(false);
 
-        // ── LEFT: tabs + scan + cart ──────────────────────────────
-        JPanel left = new JPanel(new BorderLayout(0, 10));
+        // LEFT: tabs + scan + cart
+        JPanel left = new JPanel(new BorderLayout(0,12));
         left.setOpaque(false);
 
-        // Tab strip
-        JPanel tabs = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        // Tab strip (POS Machine | POS Dashboard)
+        JPanel tabs = new JPanel(new FlowLayout(FlowLayout.LEFT,0,0));
         tabs.setOpaque(false);
         tabs.add(tabBtn("POS Machine", false));
         tabs.add(tabBtn("POS Dashboard", true));
 
         // Scan row
+        JPanel scanRow = new JPanel(new BorderLayout(8,0));
+        scanRow.setOpaque(false);
         JButton btnView = UITheme.ghostButton("View All Orders", UITheme.ACCENT_BLUE);
-        JPanel scanRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+
+        JPanel scanRight = new JPanel(new FlowLayout(FlowLayout.RIGHT,8,0));
         scanRight.setOpaque(false);
         JButton btnSearch = new JButton(Icons.SEARCH);
-        btnSearch.setPreferredSize(new Dimension(34, 34));
+        btnSearch.setPreferredSize(new Dimension(34,34));
         btnSearch.setOpaque(false); btnSearch.setContentAreaFilled(false);
         btnSearch.setBorderPainted(false); btnSearch.setFocusPainted(false);
         txtScan = UITheme.styledField("Scan Barcode / PLU / Kode…");
-        txtScan.setPreferredSize(new Dimension(220, 38));
+        txtScan.setPreferredSize(new Dimension(220,38));
         scanRight.add(btnSearch); scanRight.add(txtScan);
-        JPanel scanFull = new JPanel(new BorderLayout(10, 0));
+
+        JPanel scanFull = new JPanel(new BorderLayout(10,0));
         scanFull.setOpaque(false);
         scanFull.add(btnView, BorderLayout.WEST);
         scanFull.add(scanRight, BorderLayout.EAST);
 
-        // Category chips
+        // Product category chips
         JPanel chips = buildCategoryChips();
 
         // Cart table
-        String[] cols = {"#", "Kode", "Nama Barang", "Harga", "Qty", "Subtotal"};
-        cartMdl = new DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int r, int c) { return c == 4; }
-        };
+        String[] cols = {"#","Kode","Nama Barang","Harga","Qty","Subtotal"};
+        cartMdl = new DefaultTableModel(cols,0){ public boolean isCellEditable(int r,int c){return c==4;} };
         cart = new JTable(cartMdl);
         UITheme.styleTable(cart);
         cart.setRowHeight(42);
@@ -115,17 +112,17 @@ public class PenjualanForm extends JPanel {
         cart.getColumnModel().getColumn(4).setMaxWidth(60);
         cart.setDefaultRenderer(Object.class, cartRenderer());
 
-        JPanel cartTools = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel cartTools = new JPanel(new FlowLayout(FlowLayout.LEFT,8,0));
         cartTools.setOpaque(false);
         JButton btnDel = UITheme.dangerButton("Hapus Item");
         JButton btnClr = UITheme.ghostButton("Kosongkan", UITheme.TEXT_SECONDARY);
         cartTools.add(btnDel); cartTools.add(btnClr);
 
         left.add(tabs, BorderLayout.NORTH);
-        JPanel leftContent = new JPanel(new BorderLayout(0, 8));
+        JPanel leftContent = new JPanel(new BorderLayout(0,10));
         leftContent.setOpaque(false);
         leftContent.add(scanFull, BorderLayout.NORTH);
-        JPanel leftMid = new JPanel(new BorderLayout(0, 8));
+        JPanel leftMid = new JPanel(new BorderLayout(0,10));
         leftMid.setOpaque(false);
         leftMid.add(chips, BorderLayout.NORTH);
         leftMid.add(UITheme.styledScroll(cart), BorderLayout.CENTER);
@@ -133,163 +130,110 @@ public class PenjualanForm extends JPanel {
         leftContent.add(leftMid, BorderLayout.CENTER);
         left.add(leftContent, BorderLayout.CENTER);
 
-        // ── RIGHT: Order summary wrapped in scroll pane ───────────
+        // RIGHT: Order summary
         JPanel right = buildOrderPanel();
 
-        // Wrap in JScrollPane so buttons are always reachable
-        JScrollPane rightScroll = new JScrollPane(right);
-        rightScroll.setOpaque(false);
-        rightScroll.getViewport().setOpaque(false);
-        rightScroll.setBorder(BorderFactory.createEmptyBorder());
-        rightScroll.getVerticalScrollBar().setUnitIncrement(12);
-        rightScroll.setPreferredSize(new Dimension(280, 0));
-        rightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
         main.add(left, BorderLayout.CENTER);
-        main.add(rightScroll, BorderLayout.EAST);
+        main.add(right, BorderLayout.EAST);
         add(main, BorderLayout.CENTER);
 
         // Events
         txtScan.addActionListener(e -> addItem());
         btnView.addActionListener(e -> addItem());
         btnDel.addActionListener(e -> delItem());
-        btnClr.addActionListener(e -> {
-            if (AlertUtil.showConfirm(this, "Kosongkan keranjang?")) {
-                cartMdl.setRowCount(0); hitungTotal();
-            }
-        });
+        btnClr.addActionListener(e -> { if(AlertUtil.showConfirm(this,"Kosongkan keranjang?")) {cartMdl.setRowCount(0);hitungTotal();} });
         btnProses.addActionListener(e -> proses());
-        btnReset.addActionListener(e -> {
-            if (AlertUtil.showConfirm(this, "Reset transaksi?")) reset();
-        });
-        txtBayar.addKeyListener(new KeyAdapter() {
-            public void keyReleased(KeyEvent e) { hitungKembalian(); }
-        });
-        txtDiskon.addKeyListener(new KeyAdapter() {
-            public void keyReleased(KeyEvent e) { hitungTotal(); }
-        });
+        btnReset.addActionListener(e -> { if(AlertUtil.showConfirm(this,"Reset transaksi?")) reset(); });
+        txtBayar.addKeyListener(new KeyAdapter(){ public void keyReleased(KeyEvent e){hitungKembalian();} });
+        txtDiskon.addKeyListener(new KeyAdapter(){ public void keyReleased(KeyEvent e){hitungTotal();} });
     }
 
-    // ── Order Panel — compact spacing ────────────────────────────────────────
     private JPanel buildOrderPanel() {
-        JPanel card = UITheme.card();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        // Width controlled by scroll pane above; don't set preferred size here
-        card.setAlignmentX(LEFT_ALIGNMENT);
+        JPanel orderCard = UITheme.card();
+        orderCard.setLayout(new BoxLayout(orderCard, BoxLayout.Y_AXIS));
+        orderCard.setPreferredSize(new Dimension(290,0));
+        orderCard.setMaximumSize(new Dimension(290,Integer.MAX_VALUE));
 
-        // Helper — gap sizes
-        final int SM = 3, MD = 6;
-
-        // Order number
         lblNo = new JLabel("Order No: —");
-        lblNo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblNo.setFont(new Font("Segoe UI",Font.BOLD,13));
         lblNo.setForeground(UITheme.TEXT_PRIMARY);
         lblNo.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Cart Items label
         JLabel lCart = new JLabel("Cart Items");
-        lCart.setFont(UITheme.FONT_H2);
-        lCart.setForeground(UITheme.TEXT_PRIMARY);
+        lCart.setFont(UITheme.FONT_H2); lCart.setForeground(UITheme.TEXT_PRIMARY);
         lCart.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Subtotal label
-        lblSub = new JLabel("Rp 0");
-        lblSub.setFont(UITheme.FONT_BODY);
-        lblSub.setForeground(UITheme.TEXT_SECONDARY);
-        lblSub.setAlignmentX(LEFT_ALIGNMENT);
+        // Mini cart summary lines area
+        JPanel miniCart = new JPanel(); miniCart.setOpaque(false);
+        miniCart.setLayout(new BoxLayout(miniCart, BoxLayout.Y_AXIS));
+        miniCart.setAlignmentX(LEFT_ALIGNMENT);
+        miniCart.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
 
-        // Subtotal row (label + value side by side)
-        JPanel subRow = new JPanel(new BorderLayout());
-        subRow.setOpaque(false);
-        subRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
-        subRow.setAlignmentX(LEFT_ALIGNMENT);
-        JLabel lSubLbl = UITheme.fieldLabel("Subtotal");
-        subRow.add(lSubLbl, BorderLayout.WEST);
-        subRow.add(lblSub, BorderLayout.EAST);
-
-        // Diskon row
-        JPanel diskonRow = new JPanel(new BorderLayout(6, 0));
-        diskonRow.setOpaque(false);
-        diskonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        // Pricing
+        JSeparator s1 = UITheme.separator(); s1.setAlignmentX(LEFT_ALIGNMENT);
+        lblSub = totalRow("Subtotal", "Rp 0", UITheme.TEXT_SECONDARY);
+        JPanel diskonRow = new JPanel(new BorderLayout()); diskonRow.setOpaque(false);
+        diskonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
         diskonRow.setAlignmentX(LEFT_ALIGNMENT);
         JLabel lDis = UITheme.fieldLabel("Diskon (Rp)");
         txtDiskon = UITheme.styledField("0");
         txtDiskon.setFont(UITheme.FONT_BODY);
-        txtDiskon.setPreferredSize(new Dimension(90, 28));
-        txtDiskon.setMaximumSize(new Dimension(90, 28));
-        diskonRow.add(lDis, BorderLayout.WEST);
-        diskonRow.add(txtDiskon, BorderLayout.EAST);
+        txtDiskon.setMaximumSize(new Dimension(100,32));
+        diskonRow.add(lDis, BorderLayout.WEST); diskonRow.add(txtDiskon, BorderLayout.EAST);
+        JSeparator s2 = UITheme.separator(); s2.setAlignmentX(LEFT_ALIGNMENT);
+        lblGrand = totalRow("Total Amount", "Rp 0", UITheme.TEXT_PRIMARY);
+        lblGrand.setFont(new Font("Segoe UI",Font.BOLD,18));
 
-        // Grand total
-        lblGrand = new JLabel("Rp 0");
-        lblGrand.setFont(new Font("Segoe UI", Font.BOLD, 17));
-        lblGrand.setForeground(UITheme.TEXT_PRIMARY);
-        lblGrand.setAlignmentX(LEFT_ALIGNMENT);
-
-        JPanel grandRow = new JPanel(new BorderLayout());
-        grandRow.setOpaque(false);
-        grandRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-        grandRow.setAlignmentX(LEFT_ALIGNMENT);
-        grandRow.add(UITheme.fieldLabel("Total Amount"), BorderLayout.WEST);
-        grandRow.add(lblGrand, BorderLayout.EAST);
-
-        // Metode pembayaran
-        JLabel lMet = UITheme.fieldLabel("Metode Pembayaran");
-        lMet.setAlignmentX(LEFT_ALIGNMENT);
-        cmbMetode = UITheme.styledCombo(new String[]{"TUNAI", "KARTU DEBIT", "KARTU KREDIT", "TRANSFER"});
-        cmbMetode.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        // Metode
+        JLabel lMet = UITheme.fieldLabel("Metode Pembayaran"); lMet.setAlignmentX(LEFT_ALIGNMENT);
+        cmbMetode = UITheme.styledCombo(new String[]{"TUNAI","KARTU DEBIT","KARTU KREDIT","TRANSFER"});
+        cmbMetode.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
         cmbMetode.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Jumlah bayar
-        JLabel lByr = UITheme.fieldLabel("Jumlah Bayar");
-        lByr.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel lByr = UITheme.fieldLabel("Jumlah Bayar"); lByr.setAlignmentX(LEFT_ALIGNMENT);
         txtBayar = UITheme.styledField("0");
-        txtBayar.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        txtBayar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        txtBayar.setFont(new Font("Segoe UI",Font.BOLD,15));
+        txtBayar.setMaximumSize(new Dimension(Integer.MAX_VALUE,40));
         txtBayar.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Kembalian
-        JLabel lKem = UITheme.fieldLabel("Kembalian");
-        lKem.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel lKem = UITheme.fieldLabel("Kembalian"); lKem.setAlignmentX(LEFT_ALIGNMENT);
         lblKembalian = new JLabel("Rp 0");
-        lblKembalian.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblKembalian.setFont(new Font("Segoe UI",Font.BOLD,22));
         lblKembalian.setForeground(UITheme.ACCENT_TEAL);
         lblKembalian.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Numpad — compact
+        // Numpad (like reference image)
         JPanel numpad = buildNumpad();
         numpad.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Action buttons — full width
+        // Action btns
         btnProses = UITheme.primaryButton("Proses Transaksi", UITheme.ACCENT_LIME);
-        btnProses.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnProses.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        btnProses.setFont(new Font("Segoe UI",Font.BOLD,13));
+        btnProses.setMaximumSize(new Dimension(Integer.MAX_VALUE,42));
         btnProses.setAlignmentX(LEFT_ALIGNMENT);
-
         btnReset = UITheme.ghostButton("Reset / Batal", UITheme.ACCENT_CORAL);
-        btnReset.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        btnReset.setMaximumSize(new Dimension(Integer.MAX_VALUE,36));
         btnReset.setAlignmentX(LEFT_ALIGNMENT);
 
-        // ── Assemble with tight spacing ───────────────────────────
-        card.add(lblNo);                              card.add(vgap(SM));
-        card.add(sep());
-        card.add(lCart);                              card.add(vgap(SM));
-        card.add(sep());                              card.add(vgap(SM));
-        card.add(subRow);                             card.add(vgap(SM));
-        card.add(diskonRow);                          card.add(vgap(SM));
-        card.add(sep());                              card.add(vgap(SM));
-        card.add(grandRow);                           card.add(vgap(MD));
-        card.add(lMet);                               card.add(vgap(SM));
-        card.add(cmbMetode);                          card.add(vgap(MD));
-        card.add(lByr);                               card.add(vgap(SM));
-        card.add(txtBayar);                           card.add(vgap(SM));
-        card.add(lKem);                               card.add(vgap(SM));
-        card.add(lblKembalian);                       card.add(vgap(MD));
-        card.add(numpad);                             card.add(vgap(MD));
-        card.add(btnProses);                          card.add(vgap(SM));
-        card.add(btnReset);
-
-        return card;
+        orderCard.add(lblNo); orderCard.add(Box.createVerticalStrut(4));
+        orderCard.add(UITheme.separator()); orderCard.add(Box.createVerticalStrut(8));
+        orderCard.add(lCart); orderCard.add(Box.createVerticalStrut(6));
+        orderCard.add(miniCart); orderCard.add(Box.createVerticalStrut(8));
+        orderCard.add(s1); orderCard.add(Box.createVerticalStrut(6));
+        orderCard.add(lblSub); orderCard.add(Box.createVerticalStrut(6));
+        orderCard.add(diskonRow); orderCard.add(Box.createVerticalStrut(4));
+        orderCard.add(s2); orderCard.add(Box.createVerticalStrut(4));
+        orderCard.add(lblGrand); orderCard.add(Box.createVerticalStrut(10));
+        orderCard.add(lMet); orderCard.add(Box.createVerticalStrut(5));
+        orderCard.add(cmbMetode); orderCard.add(Box.createVerticalStrut(8));
+        orderCard.add(lByr); orderCard.add(Box.createVerticalStrut(4));
+        orderCard.add(txtBayar); orderCard.add(Box.createVerticalStrut(6));
+        orderCard.add(lKem); orderCard.add(Box.createVerticalStrut(4));
+        orderCard.add(lblKembalian); orderCard.add(Box.createVerticalStrut(10));
+        orderCard.add(numpad); orderCard.add(Box.createVerticalStrut(10));
+        orderCard.add(btnProses); orderCard.add(Box.createVerticalStrut(6));
+        orderCard.add(btnReset);
+        return orderCard;
     }
 
     // ── Numpad — 4×3, compact height ─────────────────────────────────────────
@@ -299,7 +243,7 @@ public class PenjualanForm extends JPanel {
         np.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));  // ← dikompres dari 240
         np.setAlignmentX(LEFT_ALIGNMENT);
 
-        String[] keys = {"7","8","9","4","5","6","1","2","3","C","0","⌫"};
+        String[] keys = {"7","8","9","4","5","6","1","2","3","C","0","del"};
 
         for (String k : keys) {
             JButton b = new JButton(k) {
@@ -344,58 +288,33 @@ public class PenjualanForm extends JPanel {
         return np;
     }
 
-    // ── Layout helpers ────────────────────────────────────────────────────────
-    /** Fixed-height vertical gap component. */
-    private static Component vgap(int h) {
-        return Box.createVerticalStrut(h);
-    }
-
-    /** Compact separator, full width. */
-    private static JSeparator sep() {
-        JSeparator s = UITheme.separator();
-        s.setAlignmentX(LEFT_ALIGNMENT);
-        s.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
-        return s;
-    }
-
-    // ── Rest of logic — unchanged ─────────────────────────────────────────────
-
     private void handleNumpad(String key) {
         String cur = txtBayar.getText();
         switch (key) {
-            case "C":  txtBayar.setText("0"); break;
-            case "⌫": txtBayar.setText(cur.length() > 1 ? cur.substring(0, cur.length()-1) : "0"); break;
-            default:   txtBayar.setText(("0".equals(cur) ? "" : cur) + key); break;
+            case "C": txtBayar.setText("0"); break;
+            case "⌫": txtBayar.setText(cur.length()>1?cur.substring(0,cur.length()-1):"0"); break;
+            default:
+                txtBayar.setText(("0".equals(cur)?""  : cur) + key);
         }
         hitungKembalian();
     }
 
     private JPanel buildCategoryChips() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT,8,0));
         p.setOpaque(false);
         String[] cats = {"All","Makanan","Minuman","Kebersihan","Rokok","Lainnya"};
-        for (int i = 0; i < cats.length; i++) {
+        for (int i=0; i<cats.length; i++) {
             final int idx = i;
-            JButton b = new JButton(cats[i]) {
-                @Override protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
+            JButton b = new JButton(cats[i]){
+                @Override protected void paintComponent(Graphics g){
+                    Graphics2D g2=(Graphics2D)g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    if (idx == 0) {
-                        g2.setColor(UITheme.TEXT_PRIMARY);
-                        g2.fillRoundRect(0,0,getWidth(),getHeight(),20,20);
-                        setForeground(Color.WHITE);
-                    } else {
-                        g2.setColor(UITheme.BG_CARD);
-                        g2.fillRoundRect(0,0,getWidth(),getHeight(),20,20);
-                        g2.setColor(UITheme.BORDER_DEFAULT);
-                        g2.setStroke(new BasicStroke(0.8f));
-                        g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,20,20);
-                        setForeground(UITheme.TEXT_SECONDARY);
-                    }
+                    if(idx==0){ g2.setColor(UITheme.TEXT_PRIMARY); g2.fillRoundRect(0,0,getWidth(),getHeight(),20,20); setForeground(Color.WHITE); }
+                    else { g2.setColor(UITheme.BG_CARD); g2.fillRoundRect(0,0,getWidth(),getHeight(),20,20); g2.setColor(UITheme.BORDER_DEFAULT); g2.setStroke(new BasicStroke(0.8f)); g2.drawRoundRect(0,0,getWidth()-1,getHeight()-1,20,20); setForeground(UITheme.TEXT_SECONDARY); }
                     g2.dispose(); super.paintComponent(g);
                 }
             };
-            b.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            b.setFont(new Font("Segoe UI",Font.BOLD,11));
             b.setOpaque(false); b.setContentAreaFilled(false);
             b.setBorderPainted(false); b.setFocusPainted(false);
             b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -405,131 +324,124 @@ public class PenjualanForm extends JPanel {
     }
 
     private JLabel totalRow(String label, String val, Color valColor) {
+        JLabel combined = new JLabel() {
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2=(Graphics2D)g.create();
+                g2.setFont(UITheme.FONT_SMALL); g2.setColor(UITheme.TEXT_SECONDARY);
+                g2.drawString(label, 0, 14);
+                g2.dispose();
+            }
+        };
         JLabel valLbl = new JLabel(val);
-        valLbl.setFont(UITheme.FONT_BODY);
-        valLbl.setForeground(valColor);
+        valLbl.setFont(UITheme.FONT_BODY); valLbl.setForeground(valColor);
         return valLbl;
     }
 
     private JButton tabBtn(String text, boolean active) {
-        JButton b = new JButton(text) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
+        JButton b = new JButton(text){
+            @Override protected void paintComponent(Graphics g){
+                Graphics2D g2=(Graphics2D)g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(UITheme.BG_CARD);
-                g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
-                if (active) {
-                    g2.setColor(UITheme.TEXT_PRIMARY);
-                    g2.fillRoundRect(2, getHeight()-4, getWidth()-4, 3, 2, 2);
-                }
+                g2.setColor(UITheme.BG_CARD); g2.fillRoundRect(0,0,getWidth(),getHeight(),10,10);
+                if(active){ g2.setColor(UITheme.TEXT_PRIMARY); g2.fillRoundRect(2,getHeight()-4,getWidth()-4,3,2,2); }
                 g2.dispose(); super.paintComponent(g);
             }
         };
-        b.setFont(active ? new Font("Segoe UI", Font.BOLD, 12) : UITheme.FONT_BODY);
-        b.setForeground(active ? UITheme.TEXT_PRIMARY : UITheme.TEXT_MUTED);
+        b.setFont(active?new Font("Segoe UI",Font.BOLD,12):UITheme.FONT_BODY);
+        b.setForeground(active?UITheme.TEXT_PRIMARY:UITheme.TEXT_MUTED);
         b.setOpaque(false); b.setContentAreaFilled(false);
         b.setBorderPainted(false); b.setFocusPainted(false);
-        b.setBorder(new EmptyBorder(8, 14, 8, 14));
+        b.setBorder(new EmptyBorder(8,14,8,14));
         return b;
     }
 
     private void addItem() {
-        String kode = txtScan.getText().trim();
-        if (kode.isEmpty()) return;
+        String kode = txtScan.getText().trim(); if(kode.isEmpty()) return;
         Barang b = barangCtrl.getByKode(kode);
         if (b == null) {
             List<Barang> r = barangCtrl.searchBarang(kode);
-            if (r.isEmpty()) { AlertUtil.showWarning(this,"Barang tidak ditemukan: "+kode); txtScan.setText(""); return; }
-            b = r.get(0);
+            if(r.isEmpty()){AlertUtil.showWarning(this,"Barang tidak ditemukan: "+kode);txtScan.setText("");return;}
+            b=r.get(0);
         }
-        if (b.getStok() <= 0) { AlertUtil.showWarning(this,"Stok habis!"); txtScan.setText(""); return; }
-        for (int i = 0; i < cartMdl.getRowCount(); i++) {
-            if (cartMdl.getValueAt(i,1).equals(b.getKodeBarang())) {
-                int q = Integer.parseInt(cartMdl.getValueAt(i,4).toString()) + 1;
-                if (q > b.getStok()) { AlertUtil.showWarning(this,"Stok tidak mencukupi!"); return; }
-                cartMdl.setValueAt(q, i, 4);
-                cartMdl.setValueAt(FormatUtil.formatRupiah(q * b.getHargaJual()), i, 5);
-                hitungTotal(); txtScan.setText(""); return;
+        if(b.getStok()<=0){AlertUtil.showWarning(this,"Stok habis!");txtScan.setText("");return;}
+        for(int i=0;i<cartMdl.getRowCount();i++){
+            if(cartMdl.getValueAt(i,1).equals(b.getKodeBarang())){
+                int q=Integer.parseInt(cartMdl.getValueAt(i,4).toString())+1;
+                if(q>b.getStok()){AlertUtil.showWarning(this,"Stok tidak mencukupi!");return;}
+                cartMdl.setValueAt(q,i,4);
+                cartMdl.setValueAt(FormatUtil.formatRupiah(q*b.getHargaJual()),i,5);
+                hitungTotal();txtScan.setText("");return;
             }
         }
-        cartMdl.addRow(new Object[]{
-            cartMdl.getRowCount()+1, b.getKodeBarang(), b.getNamaBarang(),
-            FormatUtil.formatRupiah(b.getHargaJual()), 1,
-            FormatUtil.formatRupiah(b.getHargaJual())
-        });
-        hitungTotal(); txtScan.setText("");
+        cartMdl.addRow(new Object[]{cartMdl.getRowCount()+1,b.getKodeBarang(),b.getNamaBarang(),FormatUtil.formatRupiah(b.getHargaJual()),1,FormatUtil.formatRupiah(b.getHargaJual())});
+        hitungTotal();txtScan.setText("");
     }
 
     private void delItem() {
-        int row = cart.getSelectedRow();
-        if (row < 0) { AlertUtil.showWarning(this,"Pilih item dahulu!"); return; }
+        int row=cart.getSelectedRow();
+        if(row<0){AlertUtil.showWarning(this,"Pilih item dahulu!");return;}
         cartMdl.removeRow(row);
-        for (int i = 0; i < cartMdl.getRowCount(); i++) cartMdl.setValueAt(i+1, i, 0);
+        for(int i=0;i<cartMdl.getRowCount();i++) cartMdl.setValueAt(i+1,i,0);
         hitungTotal();
     }
 
     private void hitungTotal() {
-        double sub = 0;
-        for (int i = 0; i < cartMdl.getRowCount(); i++) {
-            String s = cartMdl.getValueAt(i,5).toString().replaceAll("[^\\d]","");
-            sub += s.isEmpty() ? 0 : Double.parseDouble(s);
-        }
-        double dis   = FormatUtil.parseDouble(txtDiskon.getText());
-        double grand = Math.max(0, sub - dis);
+        double sub=0;
+        for(int i=0;i<cartMdl.getRowCount();i++){String s=cartMdl.getValueAt(i,5).toString().replaceAll("[^\\d]","");sub+=s.isEmpty()?0:Double.parseDouble(s);}
+        double dis=FormatUtil.parseDouble(txtDiskon.getText());
+        double grand=Math.max(0,sub-dis);
         lblSub.setText(FormatUtil.formatRupiah(sub));
         lblGrand.setText(FormatUtil.formatRupiah(grand));
         hitungKembalian();
     }
 
-    private void hitungKembalian() {
-        double g = FormatUtil.parseDouble(lblGrand.getText());
-        double b = FormatUtil.parseDouble(txtBayar.getText());
-        double k = b - g;
+    private void hitungKembalian(){
+        double g=FormatUtil.parseDouble(lblGrand.getText());
+        double b=FormatUtil.parseDouble(txtBayar.getText());
+        double k=b-g;
         lblKembalian.setText(FormatUtil.formatRupiah(k));
-        lblKembalian.setForeground(k >= 0 ? UITheme.ACCENT_TEAL : UITheme.ACCENT_CORAL);
+        lblKembalian.setForeground(k>=0?UITheme.ACCENT_TEAL:UITheme.ACCENT_CORAL);
     }
 
-    private void proses() {
-        if (cartMdl.getRowCount() == 0) { AlertUtil.showWarning(this,"Keranjang kosong!"); return; }
-        double g = FormatUtil.parseDouble(lblGrand.getText());
-        double b = FormatUtil.parseDouble(txtBayar.getText());
-        if (b < g) { AlertUtil.showWarning(this,"Jumlah bayar kurang dari total!"); return; }
+    private void proses(){
+        if(cartMdl.getRowCount()==0){AlertUtil.showWarning(this,"Keranjang kosong!");return;}
+        double g=FormatUtil.parseDouble(lblGrand.getText());
+        double b=FormatUtil.parseDouble(txtBayar.getText());
+        if(b<g){AlertUtil.showWarning(this,"Jumlah bayar kurang dari total!");return;}
         trx.setDiskon(FormatUtil.parseDouble(txtDiskon.getText()));
         trx.setMetode(cmbMetode.getSelectedItem().toString().split(" ")[0]);
         trx.setBayar(b);
-        for (int i = 0; i < cartMdl.getRowCount(); i++) {
-            Barang bar = barangCtrl.getByKode(cartMdl.getValueAt(i,1).toString());
-            if (bar == null) continue;
-            int q = FormatUtil.parseInt(cartMdl.getValueAt(i,4).toString());
-            TransaksiDetail d = new TransaksiDetail(bar.getId(), bar.getKodeBarang(), bar.getNamaBarang(), q, bar.getHargaJual());
+        for(int i=0;i<cartMdl.getRowCount();i++){
+            Barang bar=barangCtrl.getByKode(cartMdl.getValueAt(i,1).toString());
+            if(bar==null) continue;
+            int q=FormatUtil.parseInt(cartMdl.getValueAt(i,4).toString());
+            TransaksiDetail d=new TransaksiDetail(bar.getId(),bar.getKodeBarang(),bar.getNamaBarang(),q,bar.getHargaJual());
             d.hitungSubtotal(); trx.addDetail(d);
         }
-        if (new TransaksiController().simpanPenjualan(trx)) {
+        if(new TransaksiController().simpanPenjualan(trx)){
             AlertUtil.showInfo(this,"Transaksi Berhasil!\nNo: "+trx.getNoTransaksi()+"\nKembalian: "+FormatUtil.formatRupiah(b-g));
             reset();
-        } else {
-            AlertUtil.showError(this,"Gagal menyimpan transaksi!");
-        }
+        } else AlertUtil.showError(this,"Gagal menyimpan transaksi!");
     }
 
-    private void reset() {
-        trx = new Transaksi();
+    private void reset(){
+        trx=new Transaksi();
         cartMdl.setRowCount(0);
-        lblNo.setText("Order No: " + new TransaksiController().generateNoTransaksi("TRX"));
+        lblNo.setText("Order No: "+new TransaksiController().generateNoTransaksi("TRX"));
         lblSub.setText("Rp 0"); lblGrand.setText("Rp 0");
         lblKembalian.setText("Rp 0"); lblKembalian.setForeground(UITheme.ACCENT_TEAL);
         txtBayar.setText("0"); txtDiskon.setText("0"); txtScan.setText("");
         cmbMetode.setSelectedIndex(0);
     }
 
-    private DefaultTableCellRenderer cartRenderer() {
-        return new DefaultTableCellRenderer() {
-            @Override public Component getTableCellRendererComponent(
-                    JTable t, Object v, boolean sel, boolean foc, int r, int c) {
-                Component cp = super.getTableCellRendererComponent(t,v,sel,foc,r,c);
-                cp.setBackground(sel ? new Color(238,242,255) : (r%2==0 ? UITheme.BG_CARD : UITheme.BG_ROW_ALT));
-                cp.setForeground(c == 5 ? UITheme.ACCENT_TEAL : UITheme.TEXT_PRIMARY);
-                if (c == 4) ((JLabel)cp).setHorizontalAlignment(SwingConstants.CENTER);
+    private DefaultTableCellRenderer cartRenderer(){
+        return new DefaultTableCellRenderer(){
+            @Override public Component getTableCellRendererComponent(JTable t, Object v, boolean sel, boolean foc, int r, int c){
+                Component cp=super.getTableCellRendererComponent(t,v,sel,foc,r,c);
+                cp.setBackground(sel?new Color(238,242,255):(r%2==0?UITheme.BG_CARD:UITheme.BG_ROW_ALT));
+                cp.setForeground(c==5?UITheme.ACCENT_TEAL:UITheme.TEXT_PRIMARY);
+                if(c==4)((JLabel)cp).setHorizontalAlignment(SwingConstants.CENTER);
                 ((JLabel)cp).setBorder(new EmptyBorder(0,10,0,10));
                 return cp;
             }
@@ -538,7 +450,7 @@ public class PenjualanForm extends JPanel {
 
     private JPanel pageHeader(String title, String sub, JButton btnLeft, String rightLabel) {
         JPanel p = new JPanel(new BorderLayout());
-        p.setOpaque(false); p.setBorder(new EmptyBorder(0, 0, 14, 0));
+        p.setOpaque(false); p.setBorder(new EmptyBorder(0,0,16,0));
         JPanel ht = new JPanel(); ht.setOpaque(false);
         ht.setLayout(new BoxLayout(ht, BoxLayout.Y_AXIS));
         JLabel t = UITheme.pageTitle(title); t.setAlignmentX(LEFT_ALIGNMENT);

@@ -1,38 +1,18 @@
 package com.app.smartretail.view.component;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Insets;
-import java.awt.RenderingHints;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.SwingConstants;
-import javax.swing.border.EmptyBorder;
-
 import com.app.smartretail.utils.Session;
 import com.app.smartretail.utils.UITheme;
 
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+import java.util.List;
+
 /**
- * SidebarPanel — Starline-style rounded pill sidebar.
- * Active item: lime-yellow pill background, bold text.
+ * SidebarPanel — Starline grouped sidebar, no dark mode toggle.
+ * Active: lime-yellow pill. Groups: MAIN, MASTER DATA, ANALYTICS, MANAGEMENT.
  */
 public class SidebarPanel extends JPanel {
 
@@ -43,18 +23,31 @@ public class SidebarPanel extends JPanel {
     private final List<NavButton> navBtns = new ArrayList<>();
     private JButton btnLogout;
 
-    // Define which items are visible per role
+    // Role → allowed nav IDs
     private static final Map<String, List<String>> ROLE_ITEMS = new HashMap<>();
     static {
-        ROLE_ITEMS.put("ADMIN",       Arrays.asList("dashboard","pos","sales","laporan","pembelian","stok","barang","kategori","supplier","customer","grafik","users","settings"));
-        ROLE_ITEMS.put("KASIR",       Arrays.asList("dashboard","pos","sales","customer","settings"));
-        ROLE_ITEMS.put("STAFF_GUDANG",Arrays.asList("dashboard","pembelian","stok","barang","supplier","settings"));
-        ROLE_ITEMS.put("SUPERVISOR",  Arrays.asList("dashboard","pos","sales","laporan","pembelian","stok","barang","grafik","customer","settings"));
+        ROLE_ITEMS.put("ADMIN",
+            Arrays.asList("dashboard","pos","purchase","stok",
+                          "barang","kategori","customer","pegawai",
+                          "laporan","analitik",
+                          "users","settings","help"));
+        ROLE_ITEMS.put("KASIR",
+            Arrays.asList("dashboard","pos",
+                          "customer",
+                          "help"));
+        ROLE_ITEMS.put("STAFF_GUDANG",
+            Arrays.asList("dashboard","purchase","stok","barang",
+                          "help"));
+        ROLE_ITEMS.put("SUPERVISOR",
+            Arrays.asList("dashboard","pos","purchase","stok",
+                          "barang","customer","pegawai",
+                          "laporan","analitik",
+                          "settings","help"));
     }
 
     public SidebarPanel(NavListener listener) {
         this.listener = listener;
-        setPreferredSize(new Dimension(210, 0));
+        setPreferredSize(new Dimension(215, 0));
         setBackground(UITheme.BG_SIDEBAR);
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, UITheme.BORDER_DEFAULT));
@@ -80,7 +73,7 @@ public class SidebarPanel extends JPanel {
         brand.add(logoLbl, BorderLayout.WEST);
         brand.add(brandText, BorderLayout.CENTER);
 
-        // Nav items
+        // Nav
         JPanel nav = new JPanel();
         nav.setOpaque(false);
         nav.setLayout(new BoxLayout(nav, BoxLayout.Y_AXIS));
@@ -89,43 +82,54 @@ public class SidebarPanel extends JPanel {
         String role = Session.currentUser != null ? Session.currentUser.getRole() : "KASIR";
         List<String> allowed = ROLE_ITEMS.getOrDefault(role, ROLE_ITEMS.get("KASIR"));
 
-        addItem(nav, "dashboard", Icons.DASHBOARD, "Dashboard", allowed);
-        addItem(nav, "pos",       Icons.POS,       "POS",       allowed);
-        addItem(nav, "sales",     Icons.REPORT,    "Sales",     allowed);
-        addItem(nav, "laporan",   Icons.CHART,     "Laporan",   allowed);
-        addItem(nav, "pembelian", Icons.BOX,       "Purchase",  allowed);
-        addItem(nav, "stok",      Icons.WAREHOUSE, "Inventory", allowed);
-        addItem(nav, "barang",    Icons.TAG,       "Products",  allowed);
-        addItem(nav, "customer",  Icons.USERS,     "Customers & HR", allowed);
-        addItem(nav, "supplier",  Icons.TRUCK,     "Supplier",  allowed);
-        addItem(nav, "grafik",    Icons.CHART,     "Analytics", allowed);
-        addItem(nav, "users",     Icons.PAYROLL,   "Payroll",   allowed);
-        addItem(nav, "settings",  Icons.SETTINGS,  "Settings",  allowed);
-        nav.add(Box.createVerticalStrut(8));
+        // ── MAIN ──────────────────────────────────────────────────
+        groupLabel(nav, "MAIN");
+        addItem(nav, "dashboard", Icons::paintDashboard, "Dashboard",   allowed);
+        addItem(nav, "pos",       Icons::paintPos,       "POS",         allowed);
+        addItem(nav, "purchase",  Icons::paintBox,       "Purchase",    allowed);
+        addItem(nav, "stok",      Icons::paintWarehouse, "Inventory",   allowed);
 
-        // Help always visible
-        NavButton helpBtn = new NavButton("help", Icons.HELP, "Help");
-        helpBtn.setAlignmentX(LEFT_ALIGNMENT);
-        helpBtn.addActionListener(e -> {});
-        nav.add(helpBtn);
+        // ── MASTER DATA ───────────────────────────────────────────
+        groupLabel(nav, "MASTER DATA");
+        addItem(nav, "barang",    Icons::paintTag,       "Products",    allowed);
+        addItem(nav, "kategori",  Icons::paintFolder,    "Category",    allowed);
+        addItem(nav, "customer",  Icons::paintUsers,     "Customers",   allowed);
+        addItem(nav, "pegawai",   Icons::paintPayroll,   "Employees",   allowed);
+
+        // ── ANALYTICS ─────────────────────────────────────────────
+        groupLabel(nav, "ANALYTICS");
+        addItem(nav, "laporan",   Icons::paintReport,    "Reports",     allowed);
+        addItem(nav, "analitik",  Icons::paintChart,     "Analytics",   allowed);
+
+        // ── MANAGEMENT ────────────────────────────────────────────
+        groupLabel(nav, "MANAGEMENT");
+        addItem(nav, "users",     Icons::paintSettings,  "User Mgmt",   allowed);
+        addItem(nav, "settings",  Icons::paintSettings,  "Settings",    allowed);
+        addItem(nav, "help",      Icons::paintHelp,      "Help & Guide",allowed);
 
         JScrollPane scroll = new JScrollPane(nav);
         scroll.setOpaque(false); scroll.getViewport().setOpaque(false);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(0,0));
-
-        // Bottom user panel
-        JPanel bottom = buildUserPanel();
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
 
         add(brand, BorderLayout.NORTH);
         add(scroll, BorderLayout.CENTER);
-        add(bottom, BorderLayout.SOUTH);
+        add(buildUserPanel(), BorderLayout.SOUTH);
     }
 
-    private void addItem(JPanel nav, String id, Icon icon, String label, List<String> allowed) {
+    private void groupLabel(JPanel nav, String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        lbl.setForeground(UITheme.TEXT_MUTED);
+        lbl.setBorder(new EmptyBorder(10, 10, 3, 0));
+        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+        nav.add(lbl);
+    }
+
+    private void addItem(JPanel nav, String id, Icons.Painter painter, String label, List<String> allowed) {
         if (!allowed.contains(id)) return;
-        NavButton btn = new NavButton(id, icon, label);
-        btn.setAlignmentX(LEFT_ALIGNMENT);
+        NavButton btn = new NavButton(id, painter, label);
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
         btn.addActionListener(e -> {
             activeId = id;
             navBtns.forEach(Component::repaint);
@@ -133,7 +137,7 @@ public class SidebarPanel extends JPanel {
         });
         navBtns.add(btn);
         nav.add(btn);
-        nav.add(Box.createVerticalStrut(2));
+        nav.add(Box.createVerticalStrut(1));
     }
 
     private JPanel buildUserPanel() {
@@ -145,11 +149,11 @@ public class SidebarPanel extends JPanel {
 
         String uName = Session.currentUser != null ? Session.currentUser.getNamaLengkap() : "User";
         String uRole = Session.currentUser != null ? Session.currentUser.getRole() : "";
-        Color aColor = roleColor(uRole);
         String init  = getInitials(uName);
-        String disp  = uName.length() > 16 ? uName.substring(0,15)+"…" : uName;
+        Color  aC    = roleColor(uRole);
+        String disp  = uName.length() > 16 ? uName.substring(0, 15) + "…" : uName;
 
-        JLabel avatar = new JLabel(Icons.avatarIcon(init, aColor, 32));
+        JLabel avatar = new JLabel(Icons.avatarIcon(init, aC, 32));
 
         JPanel info = new JPanel();
         info.setOpaque(false);
@@ -159,27 +163,47 @@ public class SidebarPanel extends JPanel {
         lName.setForeground(UITheme.TEXT_PRIMARY);
         JLabel lRole = new JLabel(uRole);
         lRole.setFont(UITheme.FONT_LABEL);
-        lRole.setForeground(aColor);
+        lRole.setForeground(aC);
         info.add(lName); info.add(lRole);
 
-        // Logout button — clearly visible with icon
-        btnLogout = new JButton() {
+        // Logout button — large & clearly painted
+        btnLogout = new JButton("") {
+            boolean hover = false;
+            {
+                addMouseListener(new MouseAdapter() {
+                    public void mouseEntered(MouseEvent e) { hover=true; repaint(); }
+                    public void mouseExited(MouseEvent e)  { hover=false; repaint(); }
+                });
+            }
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isRollover()) {
-                    g2.setColor(new Color(239,68,68,18));
-                    g2.fillRoundRect(0,0,getWidth(),getHeight(),8,8);
+                if (hover) {
+                    g2.setColor(new Color(239, 68, 68, 22));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 }
-                Icons.tinted(Icons::paintLogout, 18, getModel().isRollover()
-                    ? UITheme.ACCENT_CORAL : UITheme.TEXT_MUTED)
-                    .paintIcon(this, g2, (getWidth()-18)/2, (getHeight()-18)/2);
+                // Draw logout arrow icon — bigger, clear
+                Color ic = hover ? UITheme.ACCENT_CORAL : new Color(180, 185, 200);
+                g2.setColor(ic);
+                g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int cx=getWidth()/2, cy=getHeight()/2;
+                // Arrow pointing right →
+                g2.drawLine(cx-7, cy, cx+6, cy);
+                g2.drawLine(cx+2, cy-4, cx+6, cy);
+                g2.drawLine(cx+2, cy+4, cx+6, cy);
+                // Door/exit frame
+                g2.drawLine(cx-7, cy-6, cx-7, cy+6);
+                g2.drawLine(cx-7, cy-6, cx-2, cy-6);
+                g2.drawLine(cx-7, cy+6, cx-2, cy+6);
                 g2.dispose();
             }
         };
-        btnLogout.setPreferredSize(new Dimension(32,32));
-        btnLogout.setOpaque(false); btnLogout.setContentAreaFilled(false);
-        btnLogout.setBorderPainted(false); btnLogout.setFocusPainted(false);
+        btnLogout.setPreferredSize(new Dimension(36, 36));
+        btnLogout.setMinimumSize(new Dimension(36, 36));
+        btnLogout.setOpaque(false);
+        btnLogout.setContentAreaFilled(false);
+        btnLogout.setBorderPainted(false);
+        btnLogout.setFocusPainted(false);
         btnLogout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btnLogout.setToolTipText("Logout");
 
@@ -196,14 +220,14 @@ public class SidebarPanel extends JPanel {
     public JButton getLogoutButton() { return btnLogout; }
 
     private String getInitials(String n) {
-        if (n==null||n.isEmpty()) return "?";
-        String[] p=n.trim().split(" ");
-        return p.length==1 ? p[0].substring(0,Math.min(2,p[0].length())).toUpperCase()
-                           : (""+p[0].charAt(0)+p[p.length-1].charAt(0)).toUpperCase();
+        if (n == null || n.isEmpty()) return "?";
+        String[] p = n.trim().split(" ");
+        return p.length == 1 ? p[0].substring(0, Math.min(2, p[0].length())).toUpperCase()
+                             : ("" + p[0].charAt(0) + p[p.length-1].charAt(0)).toUpperCase();
     }
+
     private Color roleColor(String r) {
-        if (r==null) return UITheme.ACCENT_BLUE;
-        switch(r) {
+        switch (r == null ? "" : r) {
             case "ADMIN":        return UITheme.ACCENT_CORAL;
             case "SUPERVISOR":   return UITheme.ACCENT_AMBER;
             case "STAFF_GUDANG": return UITheme.ACCENT_TEAL;
@@ -211,78 +235,54 @@ public class SidebarPanel extends JPanel {
         }
     }
 
-    // ── NavButton: Starline pill style ────────────────────────────
+    // ── NavButton ─────────────────────────────────────────────────
     private class NavButton extends JButton {
         final String id;
-        final Icon ico;
-        NavButton(String id, Icon ico, String label) {
-            super(label); this.id=id; this.ico=ico;
+        final Icons.Painter painter;
+
+        NavButton(String id, Icons.Painter painter, String label) {
+            this.id = id;
+            this.painter = painter;
+            setText(label);
             setFont(UITheme.FONT_NAV);
             setForeground(UITheme.TEXT_SECONDARY);
             setHorizontalAlignment(SwingConstants.LEFT);
-            setIconTextGap(10);
-            setIcon(ico);
             setOpaque(false); setContentAreaFilled(false);
             setBorderPainted(false); setFocusPainted(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setMaximumSize(new Dimension(190, 38));
-            setPreferredSize(new Dimension(190, 38));
-            setBorder(new EmptyBorder(0, 10, 0, 10));
+            setMaximumSize(new Dimension(195, 36));
+            setPreferredSize(new Dimension(195, 36));
+            setBorder(new EmptyBorder(0, 8, 0, 8));
         }
+
         @Override protected void paintComponent(Graphics g) {
             boolean active = id.equals(activeId);
-            Graphics2D g2 = (Graphics2D)g.create();
+            Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
             if (active) {
-                // Lime-yellow pill background
                 g2.setColor(UITheme.ACCENT_LIME);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                setForeground(UITheme.TEXT_ON_LIME);
-                setFont(new Font("Segoe UI", Font.BOLD, 13));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
             } else if (getModel().isRollover()) {
                 g2.setColor(UITheme.BG_HOVER);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
-                setForeground(UITheme.TEXT_PRIMARY);
-                setFont(UITheme.FONT_NAV);
-            } else {
-                setForeground(UITheme.TEXT_SECONDARY);
-                setFont(UITheme.FONT_NAV);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
             }
-            g2.dispose();
-            // Paint icon with correct color
-            if (ico != null) {
-                Color iconColor = active ? UITheme.TEXT_ON_LIME :
-                    (getModel().isRollover() ? UITheme.TEXT_PRIMARY : UITheme.TEXT_MUTED);
-                Icon tinted = Icons.tinted(getNavPainter(id), 18, iconColor);
-                Insets ins = getInsets();
-                tinted.paintIcon(this, g, ins.left, (getHeight()-18)/2);
-            }
-            // Paint text manually
-            g2 = (Graphics2D)g.create();
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
-            g2.setFont(getFont()); g2.setColor(getForeground());
-            g2.drawString(getText(), 36, getHeight()/2+g2.getFontMetrics().getAscent()/2-1);
-            g2.dispose();
-        }
-    }
 
-    private Icons.Painter getNavPainter(String id) {
-        switch(id) {
-            case "dashboard": return Icons::paintDashboard;
-            case "pos":       return Icons::paintPos;
-            case "sales":
-            case "laporan":   return Icons::paintReport;
-            case "pembelian": return Icons::paintBox;
-            case "stok":      return Icons::paintWarehouse;
-            case "barang":    return Icons::paintTag;
-            case "customer":  return Icons::paintUsers;
-            case "supplier":  return Icons::paintTruck;
-            case "grafik":    return Icons::paintChart;
-            case "users":
-            case "settings":  return Icons::paintSettings;
-            case "help":      return Icons::paintHelp;
-            default:          return Icons::paintFolder;
+            // Icon
+            Color iconColor = active ? UITheme.TEXT_ON_LIME
+                            : getModel().isRollover() ? UITheme.TEXT_PRIMARY
+                            : UITheme.TEXT_MUTED;
+            g2.translate(8, (getHeight() - 18) / 2);
+            if (painter != null) painter.paint(g2, 9, 9, 8, iconColor);
+            g2.translate(-8, -(getHeight() - 18) / 2);
+
+            // Label
+            g2.setFont(active ? new Font("Segoe UI", Font.BOLD, 13) : UITheme.FONT_NAV);
+            g2.setColor(active ? UITheme.TEXT_ON_LIME
+                    : getModel().isRollover() ? UITheme.TEXT_PRIMARY : UITheme.TEXT_SECONDARY);
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(getText(), 32, getHeight() / 2 + fm.getAscent() / 2 - 1);
+            g2.dispose();
         }
     }
 }
