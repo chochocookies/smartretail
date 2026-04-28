@@ -10,11 +10,18 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * PurchaseForm — Combined Purchase + Supplier management.
  * Tabs: New Purchase | Purchase History | Suppliers
+ *
+ * FIX #3A: Saat supplier dipilih, tabel barang supplier otomatis muncul
+ * FIX #3B: Tombol simpan pakai teks biasa (tanpa Unicode ✓ yang bisa blank)
+ * FIX #3C: supplier_id diset ke currentTrx sebelum simpan
  */
 public class PurchaseForm extends JPanel {
 
@@ -25,14 +32,17 @@ public class PurchaseForm extends JPanel {
     // New Purchase state
     private JTextField txtKode, txtBayar;
     private JLabel lblNo, lblTotal, lblGrand;
-    private JTable cartTable; private DefaultTableModel cartMdl;
+    private JTable cartTable;     private DefaultTableModel cartMdl;
+    private JTable supplierTable; private DefaultTableModel supplierMdl;  // FIX #3A
     private JComboBox<String> cmbSupplier;
     private Transaksi currentTrx;
 
-    // History table
-    private JTable histTable; private DefaultTableModel histMdl;
-    // Supplier table
-    private JTable supTable;  private DefaultTableModel supMdl;
+    // FIX #3A: simpan daftar supplier ID sejajar dengan combo item
+    private final List<Integer> supplierIdList = new ArrayList<>();
+
+    // History & supplier tab
+    private JTable histTable;   private DefaultTableModel histMdl;
+    private JTable supTable;    private DefaultTableModel supMdl;
     private JTextField sKode,sNama,sAlamat,sTlp,sEmail,sCP;
     private int selSupId = -1;
 
@@ -122,29 +132,62 @@ public class PurchaseForm extends JPanel {
         JPanel p = new JPanel(new BorderLayout(16, 0));
         p.setOpaque(false);
 
-        // Left: supplier + kode + cart
+        // Left: supplier + tabel barang supplier + cart
         JPanel left = new JPanel(new BorderLayout(0, 10));
         left.setOpaque(false);
 
-        JPanel topRow = new JPanel(new GridLayout(1, 2, 12, 0));
-        topRow.setOpaque(false);
-        JPanel supPan = new JPanel(new BorderLayout(0,5)); supPan.setOpaque(false);
-        supPan.add(UITheme.fieldLabel("Supplier"), BorderLayout.NORTH);
+        // ── Baris atas: pilih supplier ──
+        JPanel supPan = new JPanel(new BorderLayout(0, 5));
+        supPan.setOpaque(false);
+        supPan.add(UITheme.fieldLabel("Pilih Supplier — item akan muncul otomatis"), BorderLayout.NORTH);
+
         cmbSupplier = UITheme.styledCombo(new String[]{"— Pilih Supplier —"});
-        for (Supplier s : supDAO.getAll()) cmbSupplier.addItem(s.getNamaSupplier());
+        supplierIdList.clear();
+        for (Supplier s : supDAO.getAll()) {
+            cmbSupplier.addItem(s.getNamaSupplier());
+            supplierIdList.add(s.getId());
+        }
         supPan.add(cmbSupplier, BorderLayout.CENTER);
 
-        JPanel kodePan = new JPanel(new BorderLayout(0,5)); kodePan.setOpaque(false);
-        kodePan.add(UITheme.fieldLabel("Kode / PLU Barang"), BorderLayout.NORTH);
+        // ── Tabel barang supplier (FIX #3A) ──
+        String[] supCols = {"Kode", "Nama Barang", "Harga Beli", "Stok"};
+        supplierMdl = new DefaultTableModel(supCols, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        supplierTable = new JTable(supplierMdl);
+        UITheme.styleTable(supplierTable);
+        supplierTable.setRowHeight(30);
+        supplierTable.getColumnModel().getColumn(0).setMaxWidth(90);
+        supplierTable.getColumnModel().getColumn(2).setMaxWidth(100);
+        supplierTable.getColumnModel().getColumn(3).setMaxWidth(60);
+        supplierTable.setDefaultRenderer(Object.class, tblRenderer(-1, null));
+        supplierTable.setToolTipText("Double-klik untuk menambahkan ke cart");
+
+        JScrollPane supplierScroll = UITheme.styledScroll(supplierTable);
+        supplierScroll.setPreferredSize(new Dimension(0, 180));
+
+        JLabel lblSupHint = new JLabel("Double-klik baris atau pilih + klik Tambah ke Cart");
+        lblSupHint.setFont(UITheme.FONT_SMALL);
+        lblSupHint.setForeground(UITheme.TEXT_MUTED);
+
+        JPanel supItemPanel = new JPanel(new BorderLayout(0, 4));
+        supItemPanel.setOpaque(false);
+        supItemPanel.add(UITheme.fieldLabel("Barang dari Supplier:"), BorderLayout.NORTH);
+        supItemPanel.add(supplierScroll, BorderLayout.CENTER);
+        supItemPanel.add(lblSupHint, BorderLayout.SOUTH);
+
+        // ── Atau input kode manual (fallback) ──
+        JPanel kodePan = new JPanel(new BorderLayout(0, 5));
+        kodePan.setOpaque(false);
+        kodePan.add(UITheme.fieldLabel("Atau: Input Kode Manual"), BorderLayout.NORTH);
         JPanel kodeRow = new JPanel(new BorderLayout(8, 0)); kodeRow.setOpaque(false);
-        txtKode = UITheme.styledField("Scan atau ketik kode → Enter");
+        txtKode = UITheme.styledField("Ketik kode barang → Enter");
         txtKode.setPreferredSize(new Dimension(0, 36));
         JButton btnAdd = UITheme.primaryButton("+ Tambah", UITheme.ACCENT_LIME);
         kodeRow.add(txtKode, BorderLayout.CENTER); kodeRow.add(btnAdd, BorderLayout.EAST);
         kodePan.add(kodeRow, BorderLayout.CENTER);
 
-        topRow.add(supPan); topRow.add(kodePan);
-
+        // ── Cart table ──
         String[] cols = {"#","Kode","Nama Barang","Harga Beli","Qty","Subtotal"};
         cartMdl = new DefaultTableModel(cols, 0) { public boolean isCellEditable(int r, int c){ return c==4; } };
         cartTable = new JTable(cartMdl); UITheme.styleTable(cartTable);
@@ -158,9 +201,27 @@ public class PurchaseForm extends JPanel {
         JPanel cartTools = new JPanel(new FlowLayout(FlowLayout.LEFT,0,0));
         cartTools.setOpaque(false); cartTools.add(btnDel);
 
-        left.add(topRow, BorderLayout.NORTH);
-        left.add(UITheme.styledScroll(cartTable), BorderLayout.CENTER);
-        left.add(cartTools, BorderLayout.SOUTH);
+        JPanel cartPanel = new JPanel(new BorderLayout(0, 6));
+        cartPanel.setOpaque(false);
+        cartPanel.add(UITheme.fieldLabel("Cart Pembelian:"), BorderLayout.NORTH);
+        cartPanel.add(UITheme.styledScroll(cartTable), BorderLayout.CENTER);
+        cartPanel.add(cartTools, BorderLayout.SOUTH);
+
+        // Susun layout kiri dengan semua komponen
+        left.add(supPan,        BorderLayout.NORTH);
+
+        JPanel leftMid = new JPanel(new BorderLayout(0, 10));
+        leftMid.setOpaque(false);
+        leftMid.add(supItemPanel, BorderLayout.NORTH);
+        leftMid.add(kodePan,      BorderLayout.CENTER);
+
+        JSplitPane splitLeft = new JSplitPane(JSplitPane.VERTICAL_SPLIT, leftMid, cartPanel);
+        splitLeft.setOpaque(false);
+        splitLeft.setBorder(null);
+        splitLeft.setDividerSize(6);
+        splitLeft.setResizeWeight(0.45);
+
+        left.add(splitLeft, BorderLayout.CENTER);
 
         // Right: summary
         JPanel right = new JPanel();
@@ -183,7 +244,8 @@ public class PurchaseForm extends JPanel {
         txtBayar.setFont(new Font("Segoe UI",Font.BOLD,14));
         txtBayar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40)); txtBayar.setAlignmentX(LEFT_ALIGNMENT);
 
-        JButton btnProses = UITheme.primaryButton("✓ Simpan Pembelian", UITheme.ACCENT_LIME);
+        // FIX #3B: Tombol simpan tanpa icon Unicode ✓ agar selalu tampil
+        JButton btnProses = UITheme.primaryButton("Simpan Pembelian", UITheme.ACCENT_LIME);
         btnProses.setFont(new Font("Segoe UI",Font.BOLD,13));
         btnProses.setMaximumSize(new Dimension(Integer.MAX_VALUE,44)); btnProses.setAlignmentX(LEFT_ALIGNMENT);
 
@@ -201,14 +263,161 @@ public class PurchaseForm extends JPanel {
 
         right.add(sumCard);
 
-        p.add(left, BorderLayout.CENTER); p.add(right, BorderLayout.EAST);
+        p.add(left, BorderLayout.CENTER);
+        p.add(right, BorderLayout.EAST);
 
-        btnAdd.addActionListener(e -> addItem());
-        txtKode.addActionListener(e -> addItem());
+        // ── Events ──
+        btnAdd.addActionListener(e -> addItemByKode());
+        txtKode.addActionListener(e -> addItemByKode());
         btnDel.addActionListener(e -> delItem());
         btnProses.addActionListener(e -> proses());
         btnReset.addActionListener(e -> resetPurchase());
+
+        // FIX #3A: Ketika supplier dipilih → load barang supplier
+        cmbSupplier.addActionListener(e -> {
+            int idx = cmbSupplier.getSelectedIndex();
+            if (idx > 0 && idx - 1 < supplierIdList.size()) {
+                int supId = supplierIdList.get(idx - 1);
+                loadBarangBySupplier(supId);
+            } else {
+                supplierMdl.setRowCount(0);
+            }
+        });
+
+        // Double-klik baris barang supplier → tambah ke cart
+        supplierTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    addItemFromSupplierTable();
+                }
+            }
+        });
+
         return p;
+    }
+
+    /**
+     * FIX #3A: Load barang berdasarkan supplier_id ke tabel supplierTable.
+     * Gunakan BarangController.searchBarang atau getAllBarang lalu filter.
+     */
+    private void loadBarangBySupplier(int supplierId) {
+        supplierMdl.setRowCount(0);
+        List<Barang> all = barangCtrl.getAllBarang();
+        for (Barang b : all) {
+            if (b.getSupplierId() == supplierId) {
+                supplierMdl.addRow(new Object[]{
+                    b.getKodeBarang(),
+                    b.getNamaBarang(),
+                    FormatUtil.formatRupiah(b.getHargaBeli()),
+                    b.getStok()
+                });
+            }
+        }
+        if (supplierMdl.getRowCount() == 0) {
+            // Jika tidak ada barang dengan supplier_id, tampilkan semua barang
+            // sebagai fallback (tergantung apakah model Barang punya getSupplierId)
+            AlertUtil.showWarning(this,
+                "Tidak ada barang yang terdaftar untuk supplier ini.\n" +
+                "Gunakan input kode manual untuk menambah item.");
+        }
+    }
+
+    /**
+     * FIX #3A: Tambah barang dari tabel supplier ke cart.
+     */
+    private void addItemFromSupplierTable() {
+        int row = supplierTable.getSelectedRow();
+        if (row < 0) return;
+        String kode = supplierMdl.getValueAt(row, 0).toString();
+        Barang b = barangCtrl.getByKode(kode);
+        if (b == null) {
+            AlertUtil.showWarning(this, "Barang tidak ditemukan: " + kode);
+            return;
+        }
+        addItemToCart(b);
+    }
+
+    private void addItemByKode() {
+        String kode = txtKode.getText().trim();
+        if (kode.isEmpty()) return;
+        Barang b = barangCtrl.getByKode(kode);
+        if (b == null) {
+            AlertUtil.showWarning(this, "Barang tidak ditemukan: " + kode);
+            txtKode.setText(""); return;
+        }
+        addItemToCart(b);
+        txtKode.setText("");
+    }
+
+    private void addItemToCart(Barang b) {
+        // Cek sudah ada di cart?
+        for (int i = 0; i < cartMdl.getRowCount(); i++) {
+            if (cartMdl.getValueAt(i, 1).equals(b.getKodeBarang())) {
+                int q = Integer.parseInt(cartMdl.getValueAt(i, 4).toString()) + 1;
+                cartMdl.setValueAt(q, i, 4);
+                cartMdl.setValueAt(FormatUtil.formatRupiah(q * b.getHargaBeli()), i, 5);
+                hitungTotal(); return;
+            }
+        }
+        cartMdl.addRow(new Object[]{
+            cartMdl.getRowCount() + 1,
+            b.getKodeBarang(), b.getNamaBarang(),
+            FormatUtil.formatRupiah(b.getHargaBeli()), 1,
+            FormatUtil.formatRupiah(b.getHargaBeli())
+        });
+        hitungTotal();
+    }
+
+    private void delItem(){
+        int r=cartTable.getSelectedRow();
+        if(r<0){AlertUtil.showWarning(this,"Pilih item!");return;}
+        cartMdl.removeRow(r);
+        for(int i=0;i<cartMdl.getRowCount();i++) cartMdl.setValueAt(i+1,i,0);
+        hitungTotal();
+    }
+
+    private void hitungTotal(){
+        double t=0;
+        for(int i=0;i<cartMdl.getRowCount();i++){
+            String v=cartMdl.getValueAt(i,5).toString().replaceAll("[^\\d]","");
+            t+=v.isEmpty()?0:Double.parseDouble(v);
+        }
+        lblTotal.setText(FormatUtil.formatRupiah(t));
+        lblGrand.setText(FormatUtil.formatRupiah(t));
+    }
+
+    private void proses(){
+        if(cartMdl.getRowCount()==0){AlertUtil.showWarning(this,"Keranjang kosong!");return;}
+
+        // FIX #3C: Set supplier_id ke Transaksi sebelum simpan
+        int supIdx = cmbSupplier.getSelectedIndex();
+        if (supIdx > 0 && supIdx - 1 < supplierIdList.size()) {
+            currentTrx.setSupplierId(supplierIdList.get(supIdx - 1));
+        }
+
+        for(int i=0;i<cartMdl.getRowCount();i++){
+            Barang b=barangCtrl.getByKode(cartMdl.getValueAt(i,1).toString());
+            if(b==null) continue;
+            int q=FormatUtil.parseInt(cartMdl.getValueAt(i,4).toString());
+            TransaksiDetail d=new TransaksiDetail(b.getId(),b.getKodeBarang(),b.getNamaBarang(),q,b.getHargaBeli());
+            d.hitungSubtotal(); currentTrx.addDetail(d);
+        }
+        currentTrx.setBayar(FormatUtil.parseDouble(txtBayar.getText()));
+        if(new TransaksiController().simpanPembelian(currentTrx)){
+            AlertUtil.showInfo(this,"Pembelian berhasil!\nNo: "+currentTrx.getNoTransaksi());
+            resetPurchase();
+        } else AlertUtil.showError(this,"Gagal menyimpan.");
+    }
+
+    private void resetPurchase(){
+        currentTrx=new Transaksi();
+        cartMdl.setRowCount(0);
+        if (supplierMdl != null) supplierMdl.setRowCount(0);
+        lblNo.setText("PO: "+new TransaksiController().generateNoTransaksi("PBL"));
+        lblTotal.setText("Rp 0"); lblGrand.setText("Rp 0");
+        txtKode.setText(""); txtBayar.setText("0");
+        cmbSupplier.setSelectedIndex(0);
     }
 
     // ── Purchase History tab ──────────────────────────────────────
@@ -244,7 +453,10 @@ public class PurchaseForm extends JPanel {
         JLabel lf = new JLabel("Supplier Form"); lf.setFont(UITheme.FONT_H2); lf.setForeground(UITheme.TEXT_PRIMARY); lf.setAlignmentX(LEFT_ALIGNMENT);
         sKode=fld("Kode Supplier",fc); sNama=fld("Nama Supplier *",fc); sTlp=fld("Telepon",fc); sEmail=fld("Email",fc); sAlamat=fld("Alamat",fc); sCP=fld("Contact Person",fc);
         JPanel br=new JPanel(new GridLayout(1,2,8,0)); br.setOpaque(false); br.setMaximumSize(new Dimension(Integer.MAX_VALUE,34)); br.setAlignmentX(LEFT_ALIGNMENT);
-        JButton btnS=UITheme.primaryButton("Simpan",UITheme.ACCENT_LIME); JButton btnH=UITheme.dangerButton("Hapus"); JButton btnN=UITheme.ghostButton("+ Baru",UITheme.ACCENT_BLUE); JButton btnB=UITheme.ghostButton("Batal",UITheme.TEXT_SECONDARY);
+        JButton btnS=UITheme.primaryButton("Simpan",UITheme.ACCENT_LIME);
+        JButton btnH=UITheme.dangerButton("Hapus");
+        JButton btnN=UITheme.ghostButton("+ Baru",UITheme.ACCENT_BLUE);
+        JButton btnB=UITheme.ghostButton("Batal",UITheme.TEXT_SECONDARY);
         br.add(btnB); br.add(btnS);
         JPanel br2=new JPanel(new GridLayout(1,2,8,0)); br2.setOpaque(false); br2.setMaximumSize(new Dimension(Integer.MAX_VALUE,34)); br2.setAlignmentX(LEFT_ALIGNMENT);
         br2.add(btnN); br2.add(btnH);
@@ -269,33 +481,7 @@ public class PurchaseForm extends JPanel {
         return p;
     }
 
-    // ── Cart logic ────────────────────────────────────────────────
-    private void addItem() {
-        String kode=txtKode.getText().trim(); if(kode.isEmpty()) return;
-        Barang b=barangCtrl.getByKode(kode);
-        if(b==null){AlertUtil.showWarning(this,"Barang tidak ditemukan: "+kode);txtKode.setText("");return;}
-        for(int i=0;i<cartMdl.getRowCount();i++){
-            if(cartMdl.getValueAt(i,1).equals(b.getKodeBarang())){int q=Integer.parseInt(cartMdl.getValueAt(i,4).toString())+1;cartMdl.setValueAt(q,i,4);cartMdl.setValueAt(FormatUtil.formatRupiah(q*b.getHargaBeli()),i,5);hitungTotal();txtKode.setText("");return;}
-        }
-        cartMdl.addRow(new Object[]{cartMdl.getRowCount()+1,b.getKodeBarang(),b.getNamaBarang(),FormatUtil.formatRupiah(b.getHargaBeli()),1,FormatUtil.formatRupiah(b.getHargaBeli())});
-        hitungTotal(); txtKode.setText("");
-    }
-    private void delItem(){int r=cartTable.getSelectedRow();if(r<0){AlertUtil.showWarning(this,"Pilih item!");return;}cartMdl.removeRow(r);for(int i=0;i<cartMdl.getRowCount();i++)cartMdl.setValueAt(i+1,i,0);hitungTotal();}
-    private void hitungTotal(){double t=0;for(int i=0;i<cartMdl.getRowCount();i++){String v=cartMdl.getValueAt(i,5).toString().replaceAll("[^\\d]","");t+=v.isEmpty()?0:Double.parseDouble(v);}lblTotal.setText(FormatUtil.formatRupiah(t));lblGrand.setText(FormatUtil.formatRupiah(t));}
-    private void proses(){
-        if(cartMdl.getRowCount()==0){AlertUtil.showWarning(this,"Keranjang kosong!");return;}
-        for(int i=0;i<cartMdl.getRowCount();i++){
-            Barang b=barangCtrl.getByKode(cartMdl.getValueAt(i,1).toString());if(b==null)continue;
-            int q=FormatUtil.parseInt(cartMdl.getValueAt(i,4).toString());
-            TransaksiDetail d=new TransaksiDetail(b.getId(),b.getKodeBarang(),b.getNamaBarang(),q,b.getHargaBeli());d.hitungSubtotal();currentTrx.addDetail(d);
-        }
-        currentTrx.setBayar(FormatUtil.parseDouble(txtBayar.getText()));
-        if(new TransaksiController().simpanPembelian(currentTrx)){AlertUtil.showInfo(this,"Pembelian berhasil!\nNo: "+currentTrx.getNoTransaksi());resetPurchase();}
-        else AlertUtil.showError(this,"Gagal menyimpan.");
-    }
-    private void resetPurchase(){currentTrx=new Transaksi();cartMdl.setRowCount(0);lblNo.setText("PO: "+new TransaksiController().generateNoTransaksi("PBL"));lblTotal.setText("Rp 0");lblGrand.setText("Rp 0");txtKode.setText("");txtBayar.setText("0");cmbSupplier.setSelectedIndex(0);}
-
-    // ── Supplier logic ────────────────────────────────────────────
+    // ── Supplier CRUD ─────────────────────────────────────────────
     private void loadHistory(){
         histMdl.setRowCount(0);
         for(Transaksi t:trxCtrl.getRiwayatPembelian())
@@ -319,11 +505,16 @@ public class PurchaseForm extends JPanel {
     }
     private void clearSup(){selSupId=-1;sKode.setText("");sNama.setText("");sTlp.setText("");sEmail.setText("");sAlamat.setText("");sCP.setText("");}
 
+    // ── Helpers ───────────────────────────────────────────────────
     private void sumRow(JPanel p, String label, Component val){
         JPanel r=new JPanel(new BorderLayout());r.setOpaque(false);r.setMaximumSize(new Dimension(Integer.MAX_VALUE,32));r.setAlignmentX(LEFT_ALIGNMENT);
         r.add(UITheme.fieldLabel(label),BorderLayout.WEST);r.add(val,BorderLayout.EAST);p.add(r);p.add(Box.createVerticalStrut(4));
     }
-    private JTextField fld(String label, JPanel p){JLabel l=UITheme.fieldLabel(label);l.setAlignmentX(LEFT_ALIGNMENT);JTextField f=UITheme.styledField("");f.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));f.setAlignmentX(LEFT_ALIGNMENT);p.add(l);p.add(Box.createVerticalStrut(4));p.add(f);p.add(Box.createVerticalStrut(8));return f;}
+    private JTextField fld(String label, JPanel p){
+        JLabel l=UITheme.fieldLabel(label);l.setAlignmentX(LEFT_ALIGNMENT);
+        JTextField f=UITheme.styledField("");f.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));f.setAlignmentX(LEFT_ALIGNMENT);
+        p.add(l);p.add(Box.createVerticalStrut(4));p.add(f);p.add(Box.createVerticalStrut(8));return f;
+    }
     private DefaultTableCellRenderer tblRenderer(int accentCol, Color accent){
         return new DefaultTableCellRenderer(){
             @Override public Component getTableCellRendererComponent(JTable t,Object v,boolean sel,boolean foc,int r,int c){

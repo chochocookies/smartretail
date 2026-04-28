@@ -15,6 +15,7 @@ import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.math.BigDecimal;
 import java.util.List;
 
 import javax.swing.Box;
@@ -48,10 +49,14 @@ public class PenjualanForm extends JPanel {
 
     private JTextField txtScan, txtBayar, txtDiskon;
     private JLabel lblNo, lblSub, lblGrand, lblKembalian;
+    private JLabel lblHint; // FIX #2: hint banner
     private JTable cart; private DefaultTableModel cartMdl;
     private JComboBox<String> cmbMetode;
     private JButton btnProses, btnReset;
     private Transaksi trx;
+
+    // FIX #2: ID customer default "Umum / Walk-in"
+    private static final int DEFAULT_CUSTOMER_ID = 1;
 
     public PenjualanForm() {
         setLayout(new BorderLayout()); setBackground(UITheme.BG_SURFACE);
@@ -64,6 +69,19 @@ public class PenjualanForm extends JPanel {
         JPanel hdr = pageHeader("POS  —  Point of Sale",
             "Transaksi penjualan kasir", null, "Riwayat");
         add(hdr, BorderLayout.NORTH);
+
+        // FIX #2: Banner hint cara mulai transaksi
+        lblHint = new JLabel(
+            "<html><b>Cara memulai:</b> Ketik kode / scan barcode di kolom bawah, " +
+            "tekan Enter untuk menambah item ke keranjang. " +
+            "Isi jumlah bayar, lalu klik <b>Proses Transaksi</b>.</html>"
+        );
+        lblHint.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblHint.setForeground(new Color(12, 84, 96));
+        lblHint.setOpaque(true);
+        lblHint.setBackground(new Color(209, 236, 241));
+        lblHint.setBorder(new EmptyBorder(8, 14, 8, 14));
+        add(lblHint, BorderLayout.SOUTH);
 
         JPanel main = new JPanel(new BorderLayout(16,0));
         main.setOpaque(false);
@@ -141,7 +159,7 @@ public class PenjualanForm extends JPanel {
         txtScan.addActionListener(e -> addItem());
         btnView.addActionListener(e -> addItem());
         btnDel.addActionListener(e -> delItem());
-        btnClr.addActionListener(e -> { if(AlertUtil.showConfirm(this,"Kosongkan keranjang?")) {cartMdl.setRowCount(0);hitungTotal();} });
+        btnClr.addActionListener(e -> { if(AlertUtil.showConfirm(this,"Kosongkan keranjang?\nData cart akan dihapus.")) {cartMdl.setRowCount(0);hitungTotal();} });
         btnProses.addActionListener(e -> proses());
         btnReset.addActionListener(e -> { if(AlertUtil.showConfirm(this,"Reset transaksi?")) reset(); });
         txtBayar.addKeyListener(new KeyAdapter(){ public void keyReleased(KeyEvent e){hitungKembalian();} });
@@ -202,7 +220,7 @@ public class PenjualanForm extends JPanel {
         lblKembalian.setForeground(UITheme.ACCENT_TEAL);
         lblKembalian.setAlignmentX(LEFT_ALIGNMENT);
 
-        // Numpad (like reference image)
+        // Numpad
         JPanel numpad = buildNumpad();
         numpad.setAlignmentX(LEFT_ALIGNMENT);
 
@@ -236,11 +254,11 @@ public class PenjualanForm extends JPanel {
         return orderCard;
     }
 
-    // ── Numpad — 4×3, compact height ─────────────────────────────────────────
+    // ── Numpad ───────────────────────────────────────────────────
     private JPanel buildNumpad() {
         JPanel np = new JPanel(new GridLayout(4, 3, 6, 6));
         np.setOpaque(false);
-        np.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));  // ← dikompres dari 240
+        np.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
         np.setAlignmentX(LEFT_ALIGNMENT);
 
         String[] keys = {"7","8","9","4","5","6","1","2","3","C","0","del"};
@@ -254,31 +272,27 @@ public class PenjualanForm extends JPanel {
                     if (k.equals("C"))
                         bg = getModel().isPressed()  ? new Color(255,200,200)
                            : getModel().isRollover() ? new Color(255,235,235) : UITheme.BG_CARD;
-                    else if (k.equals("⌫"))
+                    else if (k.equals("del"))
                         bg = getModel().isPressed()  ? new Color(255,220,150)
                            : getModel().isRollover() ? new Color(255,245,230) : UITheme.BG_CARD;
                     else
                         bg = getModel().isRollover() ? UITheme.BG_HOVER : UITheme.BG_CARD;
-
                     g2.setColor(bg);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-
-                    if (k.equals("C"))       g2.setColor(new Color(255,150,150));
-                    else if (k.equals("⌫")) g2.setColor(new Color(255,180,100));
-                    else                     g2.setColor(UITheme.BORDER_DEFAULT);
-
+                    if (k.equals("C"))        g2.setColor(new Color(255,150,150));
+                    else if (k.equals("del")) g2.setColor(new Color(255,180,100));
+                    else                      g2.setColor(UITheme.BORDER_DEFAULT);
                     g2.setStroke(new BasicStroke(1.1f));
                     g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8);
                     g2.dispose();
                     super.paintComponent(g);
                 }
             };
-            if (k.equals("C"))       b.setForeground(new Color(200,0,0));
-            else if (k.equals("⌫")) b.setForeground(new Color(200,100,0));
-            else                     b.setForeground(UITheme.TEXT_PRIMARY);
-
-            b.setFont(new Font("Segoe UI", Font.BOLD, 15));  // ← dikompres dari 18
-            b.setMargin(new Insets(0, 0, 0, 0));
+            if (k.equals("C"))        b.setForeground(new Color(200,0,0));
+            else if (k.equals("del")) b.setForeground(new Color(200,100,0));
+            else                      b.setForeground(UITheme.TEXT_PRIMARY);
+            b.setFont(new Font("Segoe UI", Font.BOLD, 15));
+            b.setMargin(new Insets(0,0,0,0));
             b.setOpaque(false); b.setContentAreaFilled(false);
             b.setBorderPainted(false); b.setFocusPainted(false);
             b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -291,10 +305,9 @@ public class PenjualanForm extends JPanel {
     private void handleNumpad(String key) {
         String cur = txtBayar.getText();
         switch (key) {
-            case "C": txtBayar.setText("0"); break;
-            case "⌫": txtBayar.setText(cur.length()>1?cur.substring(0,cur.length()-1):"0"); break;
-            default:
-                txtBayar.setText(("0".equals(cur)?""  : cur) + key);
+            case "C":   txtBayar.setText("0"); break;
+            case "del": txtBayar.setText(cur.length()>1 ? cur.substring(0,cur.length()-1) : "0"); break;
+            default:    txtBayar.setText(("0".equals(cur) ? "" : cur) + key);
         }
         hitungKembalian();
     }
@@ -324,17 +337,9 @@ public class PenjualanForm extends JPanel {
     }
 
     private JLabel totalRow(String label, String val, Color valColor) {
-        JLabel combined = new JLabel() {
-            @Override protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2=(Graphics2D)g.create();
-                g2.setFont(UITheme.FONT_SMALL); g2.setColor(UITheme.TEXT_SECONDARY);
-                g2.drawString(label, 0, 14);
-                g2.dispose();
-            }
-        };
         JLabel valLbl = new JLabel(val);
-        valLbl.setFont(UITheme.FONT_BODY); valLbl.setForeground(valColor);
+        valLbl.setFont(UITheme.FONT_BODY);
+        valLbl.setForeground(valColor);
         return valLbl;
     }
 
@@ -388,7 +393,10 @@ public class PenjualanForm extends JPanel {
 
     private void hitungTotal() {
         double sub=0;
-        for(int i=0;i<cartMdl.getRowCount();i++){String s=cartMdl.getValueAt(i,5).toString().replaceAll("[^\\d]","");sub+=s.isEmpty()?0:Double.parseDouble(s);}
+        for(int i=0;i<cartMdl.getRowCount();i++){
+            String s=cartMdl.getValueAt(i,5).toString().replaceAll("[^\\d]","");
+            sub+=s.isEmpty()?0:Double.parseDouble(s);
+        }
         double dis=FormatUtil.parseDouble(txtDiskon.getText());
         double grand=Math.max(0,sub-dis);
         lblSub.setText(FormatUtil.formatRupiah(sub));
@@ -396,22 +404,44 @@ public class PenjualanForm extends JPanel {
         hitungKembalian();
     }
 
+    /**
+     * FIX #2: Hitung kembalian dengan BigDecimal agar digit selalu konsisten.
+     */
     private void hitungKembalian(){
-        double g=FormatUtil.parseDouble(lblGrand.getText());
-        double b=FormatUtil.parseDouble(txtBayar.getText());
-        double k=b-g;
-        lblKembalian.setText(FormatUtil.formatRupiah(k));
-        lblKembalian.setForeground(k>=0?UITheme.ACCENT_TEAL:UITheme.ACCENT_CORAL);
+        double grand = FormatUtil.parseDouble(lblGrand.getText());
+        double bayar = FormatUtil.parseDouble(txtBayar.getText());
+
+        // Gunakan BigDecimal untuk presisi penuh
+        BigDecimal bdGrand = BigDecimal.valueOf(grand);
+        BigDecimal bdBayar = BigDecimal.valueOf(bayar);
+        BigDecimal kembalian = bdBayar.subtract(bdGrand);
+
+        if (kembalian.compareTo(BigDecimal.ZERO) >= 0) {
+            lblKembalian.setText(FormatUtil.formatRupiah(kembalian.doubleValue()));
+            lblKembalian.setForeground(UITheme.ACCENT_TEAL);
+        } else {
+            // Tampilkan selisih kurang (kurang bayar)
+            lblKembalian.setText("Kurang: " + FormatUtil.formatRupiah(-kembalian.doubleValue()));
+            lblKembalian.setForeground(UITheme.ACCENT_CORAL);
+        }
     }
 
     private void proses(){
-        if(cartMdl.getRowCount()==0){AlertUtil.showWarning(this,"Keranjang kosong!");return;}
+        if(cartMdl.getRowCount()==0){AlertUtil.showWarning(this,"Keranjang kosong! Tambahkan barang terlebih dahulu.");return;}
         double g=FormatUtil.parseDouble(lblGrand.getText());
         double b=FormatUtil.parseDouble(txtBayar.getText());
-        if(b<g){AlertUtil.showWarning(this,"Jumlah bayar kurang dari total!");return;}
+        if(b<g){AlertUtil.showWarning(this,"Jumlah bayar kurang!\nTotal: "+FormatUtil.formatRupiah(g)+"\nBayar: "+FormatUtil.formatRupiah(b));return;}
+
         trx.setDiskon(FormatUtil.parseDouble(txtDiskon.getText()));
         trx.setMetode(cmbMetode.getSelectedItem().toString().split(" ")[0]);
         trx.setBayar(b);
+        trx.setKembalian(b - g);
+
+        // FIX #2: Pastikan customer_id selalu valid (default = 1 = Umum/Walk-in)
+        if (trx.getCustomerId() <= 0) {
+            trx.setCustomerId(DEFAULT_CUSTOMER_ID);
+        }
+
         for(int i=0;i<cartMdl.getRowCount();i++){
             Barang bar=barangCtrl.getByKode(cartMdl.getValueAt(i,1).toString());
             if(bar==null) continue;

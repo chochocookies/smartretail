@@ -21,6 +21,21 @@ public class FormatUtil {
         return "Rp " + NUM.format((long) amount);
     }
 
+    /**
+     * Format ringkas untuk dashboard — agar tidak terpotong di stat card.
+     * Contoh: 1.500.000 → "Rp 1,5 Jt" | 2.100.000.000 → "Rp 2,1 M"
+     */
+    public static String formatRupiahCompact(double amount) {
+        if (amount < 0) return "-" + formatRupiahCompact(-amount);
+        if (amount >= 1_000_000_000)
+            return String.format("Rp %.1f M", amount / 1_000_000_000.0);
+        if (amount >= 1_000_000)
+            return String.format("Rp %.1f Jt", amount / 1_000_000.0);
+        if (amount >= 1_000)
+            return String.format("Rp %.0f", amount);   // "Rp 5000" no separator for small
+        return "Rp " + NUM.format((long) amount);
+    }
+
     public static String formatNumber(int n){ return NUM.format(n); }
     public static String formatDateTime(LocalDateTime dt){ return dt!=null?dt.format(DT):"-"; }
     public static String formatDate(LocalDateTime dt){ return dt!=null?dt.format(D):"-"; }

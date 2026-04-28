@@ -11,6 +11,9 @@ import java.util.List;
 
 public class TransaksiDAO {
 
+    // FIX #2: ID customer default "Umum / Walk-in" (id=1 di tabel customer)
+    private static final int DEFAULT_CUSTOMER_ID = 1;
+
     private Connection conn;
     private BarangDAO barangDAO;
 
@@ -20,7 +23,11 @@ public class TransaksiDAO {
     }
 
     /**
-     * Simpan transaksi lengkap dengan detail dalam satu transaction JDBC
+     * Simpan transaksi lengkap dengan detail dalam satu transaction JDBC.
+     *
+     * FIX #2: customer_id tidak boleh 0 (FK constraint).
+     *   - Jika customer_id <= 0 → pakai DEFAULT_CUSTOMER_ID (1 = Umum/Walk-in)
+     *   - supplier_id: jika <= 0 → setNull (nullable FK, tidak pakai 0)
      */
     public boolean saveTransaksi(Transaksi t) {
         String sqlHeader = "INSERT INTO transaksi (no_transaksi, tipe, user_id, customer_id, " +
@@ -32,13 +39,22 @@ public class TransaksiDAO {
         try {
             conn.setAutoCommit(false);
 
-            // Insert header
+            // FIX #2A: Sanitasi customer_id — jangan pernah kirim 0
+            int safeCustomerId = (t.getCustomerId() <= 0) ? DEFAULT_CUSTOMER_ID : t.getCustomerId();
+
             PreparedStatement psH = conn.prepareStatement(sqlHeader, Statement.RETURN_GENERATED_KEYS);
             psH.setString(1, t.getNoTransaksi());
             psH.setString(2, t.getTipe().name());
             psH.setInt(3, t.getUserId());
-            psH.setInt(4, t.getCustomerId());
-            psH.setInt(5, t.getSupplierId());
+            psH.setInt(4, safeCustomerId);          // FIX: selalu valid, tidak pernah 0
+
+            // FIX #2B: supplier_id — NULL jika tidak ada (PENJUALAN tidak punya supplier)
+            if (t.getSupplierId() > 0) {
+                psH.setInt(5, t.getSupplierId());
+            } else {
+                psH.setNull(5, Types.INTEGER);      // FIX: setNull bukan setInt(0)
+            }
+
             psH.setTimestamp(6, Timestamp.valueOf(LocalDateTime.now()));
             psH.setDouble(7, t.getTotalHarga());
             psH.setDouble(8, t.getDiskon());

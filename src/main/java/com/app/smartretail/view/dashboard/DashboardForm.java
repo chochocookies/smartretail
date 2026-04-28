@@ -205,6 +205,7 @@ public class DashboardForm extends JFrame {
         cardsRow.setOpaque(false);
         cardsRow.setBorder(new EmptyBorder(0, 0, 18, 0));
 
+        // FIX #1: Gunakan mval() yang font-nya dinamis, dan update teks pakai formatRupiahCompact
         JLabel valRevenue   = mval("Rp 0");
         JLabel valOrders    = mval("0");
         JLabel valCustomers = mval("0");
@@ -310,12 +311,28 @@ public class DashboardForm extends JFrame {
                     Map<String,Object> d=get();
                     double omzetH = (double)d.getOrDefault("omzetHariIni",0.0);
                     double omzetB = (double)d.getOrDefault("omzetBulanIni",0.0);
-                    valRevenue.setText(FormatUtil.formatRupiah(omzetH));
-                    valOrders.setText(String.valueOf(d.getOrDefault("transaksiHariIni",0)));
-                    valCustomers.setText(String.valueOf(d.getOrDefault("totalBarang",0)));
-                    vTot.setText(FormatUtil.formatRupiah(omzetB*12));
-                    vMonth.setText(FormatUtil.formatRupiah(omzetB));
-                    vToday.setText(FormatUtil.formatRupiah(omzetH));
+
+                    // FIX #1: pakai formatRupiahCompact agar tidak terpotong di card
+                    String revText = FormatUtil.formatRupiahCompact(omzetH);
+                    valRevenue.setText(revText);
+                    valRevenue.setFont(dynamicFont(revText));
+
+                    String ordText = String.valueOf(d.getOrDefault("transaksiHariIni",0));
+                    valOrders.setText(ordText);
+                    valOrders.setFont(dynamicFont(ordText));
+
+                    String custText = String.valueOf(d.getOrDefault("totalBarang",0));
+                    valCustomers.setText(custText);
+                    valCustomers.setFont(dynamicFont(custText));
+
+                    // Sales summary cards juga pakai compact
+                    String totText   = FormatUtil.formatRupiahCompact(omzetB * 12);
+                    String monthText = FormatUtil.formatRupiahCompact(omzetB);
+                    String todayText = FormatUtil.formatRupiahCompact(omzetH);
+                    vTot.setText(totText);   vTot.setFont(dynamicFont(totText));
+                    vMonth.setText(monthText); vMonth.setFont(dynamicFont(monthText));
+                    vToday.setText(todayText); vToday.setFont(dynamicFont(todayText));
+
                     List<Barang> lr=ctrl.getStokRendah();
                     for (Barang b:lr)
                         stMdl.addRow(new Object[]{b.getKodeBarang(),b.getNamaBarang(),b.getStok(),b.getStokMinimum()});
@@ -327,6 +344,20 @@ public class DashboardForm extends JFrame {
     }
 
     // ── Helpers ───────────────────────────────────────────────────
+
+    /**
+     * FIX #1: Font dinamis berdasarkan panjang teks agar angka tidak terpotong.
+     */
+    private Font dynamicFont(String text) {
+        int len = (text == null) ? 0 : text.length();
+        int size;
+        if (len <= 6)       size = 20;
+        else if (len <= 9)  size = 18;
+        else if (len <= 12) size = 15;
+        else                size = 13;
+        return new Font("Segoe UI", Font.BOLD, size);
+    }
+
     private JPanel tintCard(String label, JLabel valLbl, String sub, Color tint,
                              Icons.Painter ip, Color accent, int[] spark) {
         JPanel c = UITheme.tintCard(tint);
@@ -364,9 +395,13 @@ public class DashboardForm extends JFrame {
         return c;
     }
 
+    /**
+     * FIX #1: mval menggunakan font lebih kecil sebagai default,
+     * kemudian diperbarui secara dinamis saat data load.
+     */
     private JLabel mval(String v) {
         JLabel l = new JLabel(v);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        l.setFont(new Font("Segoe UI", Font.BOLD, 16));  // turun dari 20 → 16
         l.setForeground(UITheme.TEXT_PRIMARY);
         return l;
     }
