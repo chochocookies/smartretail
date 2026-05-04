@@ -1,19 +1,90 @@
 package com.app.smartretail.view.transaksi;
 
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.RowFilter;
+import javax.swing.SwingWorker;
+import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+
 import com.app.smartretail.controller.BarangController;
 import com.app.smartretail.controller.TransaksiController;
 import com.app.smartretail.dao.SupplierDAO;
-import com.app.smartretail.model.*;
-import com.app.smartretail.utils.*;
+import com.app.smartretail.model.Barang;
+import com.app.smartretail.model.Supplier;
+import com.app.smartretail.model.Transaksi;
+import com.app.smartretail.model.TransaksiDetail;
+import com.app.smartretail.utils.AlertUtil;
+import com.app.smartretail.utils.FormatUtil;
+import com.app.smartretail.utils.UITheme;
 
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.*;
-import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.List;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JRParameter;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRTableModelDataSource;
+import net.sf.jasperreports.engine.design.JRDesignBand;
+import net.sf.jasperreports.engine.design.JRDesignExpression;
+import net.sf.jasperreports.engine.design.JRDesignField;
+import net.sf.jasperreports.engine.design.JRDesignLine;
+import net.sf.jasperreports.engine.design.JRDesignRectangle;
+import net.sf.jasperreports.engine.design.JRDesignSection;
+import net.sf.jasperreports.engine.design.JRDesignStaticText;
+import net.sf.jasperreports.engine.design.JRDesignTextField;
+import net.sf.jasperreports.engine.design.JasperDesign;
+import net.sf.jasperreports.engine.export.JRPdfExporter;
+import net.sf.jasperreports.engine.type.HorizontalTextAlignEnum;
+import net.sf.jasperreports.engine.type.ModeEnum;
+import net.sf.jasperreports.engine.type.SplitTypeEnum;
+import net.sf.jasperreports.engine.type.VerticalTextAlignEnum;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
+import net.sf.jasperreports.export.SimplePdfReportConfiguration;
 
 /**
  * PurchaseForm — Combined Purchase + Supplier management.
@@ -422,20 +493,77 @@ public class PurchaseForm extends JPanel {
 
     // ── Purchase History tab ──────────────────────────────────────
     private JPanel buildHistory() {
-        JPanel p = new JPanel(new BorderLayout(0,10)); p.setOpaque(false);
-        JPanel tbr = new JPanel(new BorderLayout(8,0)); tbr.setOpaque(false);
+        JPanel p = new JPanel(new BorderLayout(0, 10)); p.setOpaque(false);
+
+        // Toolbar
+        JPanel tbr = new JPanel(new BorderLayout(8, 0)); tbr.setOpaque(false);
+
         JTextField sField = UITheme.styledField("Cari nomor PO, supplier…");
-        sField.setPreferredSize(new Dimension(240,34));
-        tbr.add(sField, BorderLayout.WEST);
-        tbr.add(UITheme.ghostButton("Export PDF", UITheme.ACCENT_AMBER), BorderLayout.EAST);
+        sField.setPreferredSize(new Dimension(240, 34));
+
+        JPanel rightBtns = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 0));
+        rightBtns.setOpaque(false);
+        JButton btnRefreshHist = UITheme.ghostButton("Refresh",    UITheme.ACCENT_BLUE);
+        JButton btnExportCSV   = UITheme.ghostButton("Export CSV", UITheme.ACCENT_TEAL);
+        JButton btnExportPDF   = UITheme.primaryButton("Export PDF", UITheme.ACCENT_AMBER);
+        rightBtns.add(btnRefreshHist);
+        rightBtns.add(btnExportCSV);
+        rightBtns.add(btnExportPDF);
+
+        tbr.add(sField,     BorderLayout.WEST);
+        tbr.add(rightBtns,  BorderLayout.EAST);
+
+        // Table
         String[] cols = {"No PO","Tanggal","Supplier","Jumlah Item","Total","Status"};
-        histMdl = new DefaultTableModel(cols,0){ public boolean isCellEditable(int r,int c){return false;} };
-        histTable = new JTable(histMdl); UITheme.styleTable(histTable);
-        histTable.setDefaultRenderer(Object.class, tblRenderer(-1, null));
-        JPanel card = UITheme.card(); card.setLayout(new BorderLayout(0,10));
-        card.add(tbr, BorderLayout.NORTH);
-        card.add(UITheme.styledScroll(histTable), BorderLayout.CENTER);
-        p.add(card, BorderLayout.CENTER);
+        histMdl = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        histTable = new JTable(histMdl);
+        UITheme.styleTable(histTable);
+        histTable.setRowHeight(34);
+        histTable.setDefaultRenderer(Object.class, tblRenderer(4, UITheme.ACCENT_BLUE));
+
+        // Sort
+        TableRowSorter<DefaultTableModel> histSorter = new TableRowSorter<>(histMdl);
+        histTable.setRowSorter(histSorter);
+
+        // Real-time search
+        sField.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { doFilter(); }
+            public void removeUpdate(DocumentEvent e) { doFilter(); }
+            public void changedUpdate(DocumentEvent e) { doFilter(); }
+            void doFilter() {
+                String kw = sField.getText().trim();
+                histSorter.setRowFilter(kw.isEmpty() ? null
+                    : RowFilter.regexFilter("(?i)" + kw, 0, 1, 2));
+            }
+        });
+
+        // ── Events ──
+        btnRefreshHist.addActionListener(e -> loadHistory());
+        btnExportCSV.addActionListener(e -> exportHistoryCSV());
+        btnExportPDF.addActionListener(e -> exportHistoryPDF());   // ← FIX: sekarang terhubung
+
+        JPanel card = UITheme.card();
+        card.setLayout(new BorderLayout(0, 10));
+
+        JPanel hdrRow = new JPanel(new java.awt.BorderLayout()); hdrRow.setOpaque(false);
+        JLabel ttl = new JLabel("Riwayat Pembelian");
+        ttl.setFont(UITheme.FONT_H2); ttl.setForeground(UITheme.TEXT_PRIMARY);
+        JLabel hint = new JLabel("Klik header kolom untuk mengurutkan  •  Ketik di kolom cari untuk filter");
+        hint.setFont(UITheme.FONT_SMALL); hint.setForeground(UITheme.TEXT_MUTED);
+        hdrRow.add(ttl, java.awt.BorderLayout.WEST); hdrRow.add(hint, java.awt.BorderLayout.EAST);
+
+        card.add(tbr,                              java.awt.BorderLayout.NORTH);
+        card.add(hdrRow,                           java.awt.BorderLayout.CENTER);
+        card.add(UITheme.styledScroll(histTable),  java.awt.BorderLayout.SOUTH);
+
+        // Override layout agar tabel bisa grow
+        card.setLayout(new java.awt.BorderLayout(0, 8));
+        card.add(tbr,   java.awt.BorderLayout.NORTH);
+        card.add(UITheme.styledScroll(histTable), java.awt.BorderLayout.CENTER);
+
+        p.add(card, java.awt.BorderLayout.CENTER);
         return p;
     }
 
@@ -482,11 +610,6 @@ public class PurchaseForm extends JPanel {
     }
 
     // ── Supplier CRUD ─────────────────────────────────────────────
-    private void loadHistory(){
-        histMdl.setRowCount(0);
-        for(Transaksi t:trxCtrl.getRiwayatPembelian())
-            histMdl.addRow(new Object[]{t.getNoTransaksi(),FormatUtil.formatDateTime(t.getTanggal()),t.getNamaSupplier(),"—",FormatUtil.formatRupiah(t.getGrandTotal()),"SELESAI"});
-    }
     private void loadSuppliers(){
         supMdl.setRowCount(0);
         for(Supplier s:supDAO.getAll())
@@ -527,4 +650,369 @@ public class PurchaseForm extends JPanel {
         };
     }
     private String s(Object o){return o==null?"":o.toString();}
+
+    // ════════════════════════════════════════════════════════════════
+    // LOAD HISTORY
+    // ════════════════════════════════════════════════════════════════
+    private void loadHistory() {
+        histMdl.setRowCount(0);
+        try {
+            List<Transaksi> list = trxCtrl.getRiwayatPembelian();
+            if (list == null || list.isEmpty()) {
+                histMdl.addRow(new Object[]{"— Tidak ada data —", "", "", "", "", ""});
+                return;
+            }
+            for (Transaksi t : list) {
+                histMdl.addRow(new Object[]{
+                    t.getNoTransaksi(),
+                    FormatUtil.formatDateTime(t.getTanggal()),
+                    t.getNamaSupplier() != null ? t.getNamaSupplier() : "-",
+                    t.getDetails() != null ? t.getDetails().size() : "-",
+                    FormatUtil.formatRupiah(t.getGrandTotal()),
+                    t.getStatus() != null ? t.getStatus() : "SELESAI"
+                });
+            }
+        } catch (Exception ex) {
+            showDetailedError("Gagal memuat riwayat pembelian", ex);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // EXPORT PDF — JasperReports Programatik
+    // ════════════════════════════════════════════════════════════════
+    private void exportHistoryPDF() {
+        if (histMdl.getRowCount() == 0 ||
+            (histMdl.getRowCount() == 1 && histMdl.getValueAt(0,0).toString().startsWith("—"))) {
+            AlertUtil.showWarning(this, "Tidak ada data untuk diekspor.\nKlik Refresh terlebih dahulu.");
+            return;
+        }
+
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Simpan Laporan Pembelian PDF");
+        fc.setFileFilter(new FileNameExtensionFilter("PDF Files (*.pdf)", "pdf"));
+        String fname = "Laporan_Pembelian_" + LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".pdf";
+        fc.setSelectedFile(new java.io.File(System.getProperty("user.home"), fname));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        java.io.File pdfFile = fc.getSelectedFile();
+        if (!pdfFile.getName().toLowerCase().endsWith(".pdf"))
+            pdfFile = new java.io.File(pdfFile.getAbsolutePath() + ".pdf");
+
+        final java.io.File finalFile = pdfFile;
+        setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
+
+        // Progress dialog
+        JDialog dlg = new JDialog((java.awt.Frame)
+            javax.swing.SwingUtilities.getWindowAncestor(this), false);
+        dlg.setUndecorated(true);
+        JPanel pp = new JPanel(new java.awt.BorderLayout(10, 10));
+        pp.setBorder(new EmptyBorder(18, 24, 18, 24));
+        pp.setBackground(UITheme.BG_CARD);
+        JProgressBar bar = new JProgressBar(); bar.setIndeterminate(true);
+        bar.setPreferredSize(new java.awt.Dimension(220, 8));
+        pp.add(new JLabel("Membuat PDF laporan pembelian..."), java.awt.BorderLayout.NORTH);
+        pp.add(bar, java.awt.BorderLayout.CENTER);
+        dlg.add(pp); dlg.pack(); dlg.setLocationRelativeTo(this);
+
+        SwingWorker<Void, Void> worker = new SwingWorker<>() {
+            String errMsg = null;
+            @Override
+            protected Void doInBackground() {
+                try {
+                    JasperPrint print = buildPurchaseJasperPrint();
+                    JRPdfExporter exporter = new JRPdfExporter();
+                    exporter.setExporterInput(new SimpleExporterInput(print));
+                    exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(finalFile));
+                    SimplePdfReportConfiguration cfg = new SimplePdfReportConfiguration();
+                    cfg.setSizePageToContent(false);
+                    exporter.setConfiguration(cfg);
+                    exporter.exportReport();
+                } catch (Exception ex) {
+                    StringWriter sw = new StringWriter();
+                    ex.printStackTrace(new PrintWriter(sw));
+                    errMsg = ex.getMessage() + "\n\n" + sw.toString();
+                }
+                return null;
+            }
+            @Override
+            protected void done() {
+                dlg.dispose();
+                setCursor(java.awt.Cursor.getDefaultCursor());
+                if (errMsg != null) {
+                    showDetailedError("Gagal export PDF", new RuntimeException(errMsg));
+                } else {
+                    int choice = JOptionPane.showConfirmDialog(PurchaseForm.this,
+                        "PDF berhasil disimpan!\n" + finalFile.getAbsolutePath() +
+                        "\n\nBuka file sekarang?",
+                        "Export Berhasil", JOptionPane.YES_NO_OPTION,
+                        JOptionPane.INFORMATION_MESSAGE);
+                    if (choice == JOptionPane.YES_OPTION) {
+                        try { Desktop.getDesktop().open(finalFile); }
+                        catch (Exception ex) {
+                            AlertUtil.showWarning(PurchaseForm.this,
+                                "Tidak bisa membuka file otomatis.\nBuka manual di: " +
+                                finalFile.getAbsolutePath());
+                        }
+                    }
+                }
+            }
+        };
+        dlg.setVisible(true);
+        worker.execute();
+    }
+
+    private JasperPrint buildPurchaseJasperPrint() throws JRException {
+        final int PAGE_W    = 842;   // A4 landscape lebar
+        final int PAGE_H    = 595;
+        final int MARGIN     = 30;
+        final int CONTENT_W  = PAGE_W - MARGIN * 2;
+
+        // ── Snapshot data dari histMdl ──
+        String[] hdrs = new String[histMdl.getColumnCount()];
+        for (int i = 0; i < hdrs.length; i++) hdrs[i] = histMdl.getColumnName(i);
+
+        List<Object[]> rows = new ArrayList<>();
+        for (int r = 0; r < histMdl.getRowCount(); r++) {
+            Object[] row = new Object[hdrs.length];
+            for (int c = 0; c < hdrs.length; c++) {
+                Object v = histMdl.getValueAt(r, c);
+                row[c] = v != null ? v.toString() : "-";
+            }
+            rows.add(row);
+        }
+
+        // ── Warna ──
+        java.awt.Color C_TITLE_BG  = new java.awt.Color(15, 23, 42);
+        java.awt.Color C_ACCENT    = new java.awt.Color(251, 191, 36);   // amber
+        java.awt.Color C_HDR_BG    = new java.awt.Color(30, 41, 59);
+        java.awt.Color C_HDR_FG    = java.awt.Color.WHITE;
+        java.awt.Color C_ALT       = new java.awt.Color(248, 250, 252);
+        java.awt.Color C_BORDER    = new java.awt.Color(226, 232, 240);
+        java.awt.Color C_MUTED     = new java.awt.Color(148, 163, 184);
+
+        // ── Design ──
+        JasperDesign design = new JasperDesign();
+        design.setName("PurchaseReport");
+        design.setPageWidth(PAGE_W);   design.setPageHeight(PAGE_H);
+        design.setLeftMargin(MARGIN);  design.setRightMargin(MARGIN);
+        design.setTopMargin(MARGIN);   design.setBottomMargin(MARGIN);
+        design.setColumnWidth(CONTENT_W);
+
+        // Register fields
+        for (int i = 0; i < hdrs.length; i++) {
+            JRDesignField f = new JRDesignField();
+            f.setName("F" + i); f.setValueClass(String.class);
+            design.addField(f);
+        }
+
+        // Lebar kolom
+        int[] cw = calcColWidths(hdrs, CONTENT_W);
+
+        // ── TITLE BAND ──
+        JRDesignBand title = new JRDesignBand(); title.setHeight(80);
+        JRDesignRectangle bgR = rect(0, 0, CONTENT_W, 80, C_TITLE_BG);
+        JRDesignRectangle acc = rect(0, 0, 5, 80, C_ACCENT);
+        title.addElement(bgR); title.addElement(acc);
+        title.addElement(st("LAPORAN PEMBELIAN", 15, 14, 10, CONTENT_W-20, 26,
+            HorizontalTextAlignEnum.LEFT, true, C_HDR_FG));
+        title.addElement(st("Dicetak: " +
+            LocalDateTime.now().format(DateTimeFormatter.ofPattern(
+                "dd MMMM yyyy HH:mm", new Locale("id","ID"))) +
+            "   |   Total: " + rows.size() + " transaksi",
+            9, 14, 38, CONTENT_W-20, 18,
+            HorizontalTextAlignEnum.LEFT, false, C_MUTED));
+        design.setTitle(title);
+
+        // ── COLUMN HEADER BAND ──
+        JRDesignBand colHdr = new JRDesignBand(); colHdr.setHeight(26);
+        colHdr.addElement(rect(0, 0, CONTENT_W, 26, C_HDR_BG));
+        int cx = 0;
+        for (int i = 0; i < hdrs.length; i++) {
+            colHdr.addElement(st(hdrs[i].toUpperCase(), 8, cx+4, 3, cw[i]-8, 20,
+                HorizontalTextAlignEnum.LEFT, true, C_HDR_FG));
+            cx += cw[i];
+        }
+        design.setColumnHeader(colHdr);
+
+        // ── DETAIL BAND ──
+        JRDesignBand detail = new JRDesignBand(); detail.setHeight(22);
+        detail.setSplitType(SplitTypeEnum.STRETCH);
+
+        // Alt row background
+        JRDesignRectangle altBg = rect(0, 0, CONTENT_W, 22, C_ALT);
+        JRDesignExpression altExpr = new JRDesignExpression();
+        altExpr.setText("$V{REPORT_COUNT} % 2 == 0");
+        altBg.setPrintWhenExpression(altExpr);
+        detail.addElement(altBg);
+
+        // Bottom line
+        JRDesignLine ln = new JRDesignLine();
+        ln.setX(0); ln.setY(21); ln.setWidth(CONTENT_W); ln.setHeight(1);
+        ln.getLinePen().setLineWidth(0.4f); ln.getLinePen().setLineColor(C_BORDER);
+        detail.addElement(ln);
+
+        cx = 0;
+        for (int i = 0; i < hdrs.length; i++) {
+            JRDesignTextField tf = new JRDesignTextField();
+            tf.setX(cx+4); tf.setY(2); tf.setWidth(cw[i]-8); tf.setHeight(18);
+            tf.setBlankWhenNull(true); tf.setStretchWithOverflow(true);
+            JRDesignExpression ex = new JRDesignExpression();
+            ex.setText("$F{F" + i + "}");
+            tf.setExpression(ex);
+            boolean isMoney  = hdrs[i].toLowerCase().contains("total");
+            boolean isStatus = hdrs[i].equalsIgnoreCase("Status");
+            tf.setHorizontalTextAlign(isMoney ? HorizontalTextAlignEnum.RIGHT : HorizontalTextAlignEnum.LEFT);
+            tf.setVerticalTextAlign(VerticalTextAlignEnum.MIDDLE);
+            tf.setFontSize(9f);
+            tf.setForecolor(isMoney  ? new java.awt.Color(5, 150, 105)
+                          : isStatus ? new java.awt.Color(7, 89, 133)
+                          : java.awt.Color.DARK_GRAY);
+            detail.addElement(tf);
+            cx += cw[i];
+        }
+        ((JRDesignSection) design.getDetailSection()).addBand(detail);
+
+        // ── SUMMARY BAND ──
+        JRDesignBand sum = new JRDesignBand(); sum.setHeight(28);
+        sum.addElement(rect(0, 0, CONTENT_W, 28, new java.awt.Color(241, 245, 249)));
+        sum.addElement(st("Total " + rows.size() + " transaksi pembelian",
+            10, 8, 6, CONTENT_W-16, 18, HorizontalTextAlignEnum.LEFT, true,
+            new java.awt.Color(30,41,59)));
+        design.setSummary(sum);
+
+        // ── PAGE FOOTER ──
+        JRDesignBand footer = new JRDesignBand(); footer.setHeight(18);
+        footer.addElement(st("SRMS — Smart Retail Management System",
+            8, 0, 3, CONTENT_W/2, 14, HorizontalTextAlignEnum.LEFT, false, C_MUTED));
+        JRDesignTextField pgNum = new JRDesignTextField();
+        pgNum.setX(CONTENT_W/2); pgNum.setY(3); pgNum.setWidth(CONTENT_W/2); pgNum.setHeight(14);
+        pgNum.setHorizontalTextAlign(HorizontalTextAlignEnum.RIGHT);
+        pgNum.setFontSize(8f); pgNum.setForecolor(C_MUTED);
+        JRDesignExpression pgExpr = new JRDesignExpression();
+        pgExpr.setText("\"Halaman \" + $V{PAGE_NUMBER}");
+        pgNum.setExpression(pgExpr);
+        footer.addElement(pgNum);
+        design.setPageFooter(footer);
+
+        // ── Compile + fill ──
+        JasperReport report = JasperCompileManager.compileReport(design);
+
+        DefaultTableModel dm = new DefaultTableModel(hdrs, 0);
+        for (Object[] r : rows) dm.addRow(r);
+
+        java.util.Map<String,Object> params = new java.util.HashMap<>();
+        params.put(JRParameter.REPORT_LOCALE, new Locale("id","ID"));
+
+        return JasperFillManager.fillReport(report, params, new JRTableModelDataSource(dm));
+    }
+
+    // ── Helper: static text element ──
+    private JRDesignStaticText st(String text, int fontSize, int x, int y, int w, int h,
+                                   HorizontalTextAlignEnum align, boolean bold, java.awt.Color fg) {
+        JRDesignStaticText s = new JRDesignStaticText();
+        s.setText(text); s.setX(x); s.setY(y); s.setWidth(w); s.setHeight(h);
+        s.setHorizontalTextAlign(align); s.setVerticalTextAlign(VerticalTextAlignEnum.MIDDLE);
+        s.setForecolor(fg); s.setFontSize((float) fontSize); s.setBold(bold);
+        return s;
+    }
+
+    // ── Helper: filled rectangle ──
+    private JRDesignRectangle rect(int x, int y, int w, int h, java.awt.Color bg) {
+        JRDesignRectangle r = new JRDesignRectangle();
+        r.setX(x); r.setY(y); r.setWidth(w); r.setHeight(h);
+        r.getLinePen().setLineWidth(0f); r.setBackcolor(bg); r.setMode(ModeEnum.OPAQUE);
+        return r;
+    }
+
+    // ── Helper: lebar kolom proporsional ──
+    private int[] calcColWidths(String[] headers, int total) {
+        int[] w = new int[headers.length];
+        for (int i = 0; i < headers.length; i++) {
+            String h = headers[i].toLowerCase();
+            if (h.contains("no") || h.contains("#"))         w[i] = 7;
+            else if (h.contains("tanggal"))                  w[i] = 9;
+            else if (h.contains("supplier"))                 w[i] = 12;
+            else if (h.contains("total") || h.contains("grand")) w[i] = 9;
+            else if (h.contains("item") || h.contains("qty"))w[i] = 5;
+            else if (h.contains("status"))                   w[i] = 6;
+            else                                             w[i] = 7;
+        }
+        int sumW = Arrays.stream(w).sum();
+        int[] res = new int[headers.length]; int used = 0;
+        for (int i = 0; i < headers.length - 1; i++) {
+            res[i] = (int)((double) w[i] / sumW * total); used += res[i];
+        }
+        res[headers.length-1] = total - used;
+        return res;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // EXPORT CSV — PURCHASE HISTORY
+    // ════════════════════════════════════════════════════════════════
+    private void exportHistoryCSV() {
+        if (histMdl.getRowCount() == 0) {
+            AlertUtil.showWarning(this, "Tidak ada data untuk diekspor!"); return;
+        }
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Simpan CSV Riwayat Pembelian");
+        fc.setFileFilter(new FileNameExtensionFilter("CSV Files (*.csv)", "csv"));
+        String fname = "Pembelian_" + LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm")) + ".csv";
+        fc.setSelectedFile(new java.io.File(System.getProperty("user.home"), fname));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        java.io.File file = fc.getSelectedFile();
+        if (!file.getName().endsWith(".csv")) file = new java.io.File(file.getAbsolutePath()+".csv");
+        try (PrintWriter pw = new PrintWriter(
+                new java.io.OutputStreamWriter(new java.io.FileOutputStream(file), "UTF-8"))) {
+            pw.print('\uFEFF'); // BOM for Excel
+            StringBuilder hdr = new StringBuilder();
+            for (int i = 0; i < histMdl.getColumnCount(); i++) {
+                if (i > 0) hdr.append(",");
+                hdr.append("\"").append(histMdl.getColumnName(i)).append("\"");
+            }
+            pw.println(hdr);
+            for (int r = 0; r < histMdl.getRowCount(); r++) {
+                StringBuilder row = new StringBuilder();
+                for (int c = 0; c < histMdl.getColumnCount(); c++) {
+                    if (c > 0) row.append(",");
+                    Object v = histMdl.getValueAt(r, c);
+                    String val = v == null ? "" : v.toString().replace("\"", "\"\"\"");
+                    row.append("\"").append(val).append("\"");
+                }
+                pw.println(row);
+            }
+            AlertUtil.showInfo(this, "CSV berhasil disimpan!\n" + file.getAbsolutePath());
+        } catch (Exception ex) {
+            showDetailedError("Gagal menyimpan CSV", ex);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ERROR DIALOG — tampilkan pesan + stack trace agar bisa debug
+    // ════════════════════════════════════════════════════════════════
+    private void showDetailedError(String title, Exception ex) {
+        StringWriter sw = new StringWriter();
+        ex.printStackTrace(new PrintWriter(sw));
+        String trace = sw.toString();
+
+        JTextArea ta = new JTextArea(trace);
+        ta.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 11));
+        ta.setEditable(false); ta.setRows(12);
+        JScrollPane sp = new JScrollPane(ta);
+        sp.setPreferredSize(new java.awt.Dimension(600, 220));
+
+        JPanel panel = new JPanel(new java.awt.BorderLayout(0, 8));
+        panel.add(new JLabel("<html><b>" + title + "</b><br>"
+            + "<font color=red>" + ex.getMessage() + "</font></html>"),
+            java.awt.BorderLayout.NORTH);
+        panel.add(sp, java.awt.BorderLayout.CENTER);
+        panel.add(new JLabel("Salin teks di atas dan kirim ke developer untuk analisis."),
+            java.awt.BorderLayout.SOUTH);
+
+        JOptionPane.showMessageDialog(this, panel, "Error Detail", JOptionPane.ERROR_MESSAGE);
+    }
+
+
 }
