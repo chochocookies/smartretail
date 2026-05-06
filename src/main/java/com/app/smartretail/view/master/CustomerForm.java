@@ -9,6 +9,10 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 import java.awt.*;
 import java.sql.*;
+import javax.swing.RowFilter;
+import javax.swing.table.TableRowSorter;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
 
 public class CustomerForm extends JPanel {
 
@@ -35,7 +39,7 @@ public class CustomerForm extends JPanel {
 
         JPanel tabRow = new JPanel(new FlowLayout(FlowLayout.LEFT,0,0));
         tabRow.setOpaque(false);
-        for (String t : new String[]{"Customers","Employees","Attendance Tracking"}) {
+        for (String t : new String[]{"Customers"}) {
             boolean a = "Customers".equals(t);
             JButton b = new JButton(t){
                 @Override protected void paintComponent(Graphics g){
@@ -80,6 +84,8 @@ public class CustomerForm extends JPanel {
         String[] cols = {"Customer ID","Customer Name","Phone","Email","Total Amount","Membership","Action"};
         mdl = new DefaultTableModel(cols,0){ public boolean isCellEditable(int r,int c){return false;} };
         table = new JTable(mdl); UITheme.styleTable(table);
+        TableRowSorter<DefaultTableModel> custSorter = new TableRowSorter<>(mdl);
+        table.setRowSorter(custSorter);
         table.getColumnModel().getColumn(0).setPreferredWidth(100);
         table.getColumnModel().getColumn(5).setMaxWidth(100);
         table.getColumnModel().getColumn(6).setMaxWidth(80);
@@ -117,6 +123,10 @@ public class CustomerForm extends JPanel {
         main.add(fc, BorderLayout.EAST);
         add(main, BorderLayout.CENTER);
 
+        txtS.getDocument().addDocumentListener(new DocumentListener(){
+            void f(){String kw=txtS.getText().trim();custSorter.setRowFilter(kw.isEmpty()?null:RowFilter.regexFilter("(?i)"+kw,0,1,2,3));}
+            public void insertUpdate(DocumentEvent e){f();}public void removeUpdate(DocumentEvent e){f();}public void changedUpdate(DocumentEvent e){f();}
+        });
         btnNew.addActionListener(e->clear()); btnSimpan.addActionListener(e->simpan());
         btnHapus.addActionListener(e->hapus()); btnBatal.addActionListener(e->clear());
         table.getSelectionModel().addListSelectionListener(e->{
@@ -168,7 +178,7 @@ public class CustomerForm extends JPanel {
         mdl.setRowCount(0);
         Connection conn=DatabaseConnection.getInstance();
         try(Statement st=conn.createStatement();ResultSet rs=st.executeQuery("SELECT * FROM customer ORDER BY nama_customer")){
-            while(rs.next()) mdl.addRow(new Object[]{rs.getInt("id"),rs.getString("nama_customer"),rs.getString("telepon"),rs.getString("email"),FormatUtil.formatRupiah(0),"Silver","\uD83D\uDC41 \u270F"});
+            while(rs.next()) mdl.addRow(new Object[]{rs.getInt("id"),rs.getString("nama_customer"),rs.getString("telepon"),rs.getString("email"),FormatUtil.formatRupiah(0),"Silver","Detail"});
         }catch(SQLException ex){ex.printStackTrace();}
     }
     private void clear(){selId=-1;txtKode.setText("");txtNama.setText("");txtTlp.setText("");txtEmail.setText("");txtAlamat.setText("");}

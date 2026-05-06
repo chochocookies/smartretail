@@ -7,6 +7,8 @@ import com.app.smartretail.view.component.Icons;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.sql.*;
 
@@ -44,7 +46,7 @@ public class KategoriForm extends JPanel {
 
         JPanel acts = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         acts.setOpaque(false);
-        JButton btnRef = UITheme.ghostButton("\u21BB", UITheme.TEXT_MUTED);
+        JButton btnRef = UITheme.ghostButton("Refresh", UITheme.TEXT_MUTED);
         btnHapus = UITheme.dangerButton("Hapus");
         btnNew   = UITheme.primaryButton("+ Kategori", UITheme.ACCENT_LIME);
         acts.add(btnRef); acts.add(btnHapus); acts.add(btnNew);
@@ -76,6 +78,8 @@ public class KategoriForm extends JPanel {
         };
         table = new JTable(mdl);
         UITheme.styleTable(table);
+        TableRowSorter<DefaultTableModel> katSorter = new TableRowSorter<>(mdl);
+        table.setRowSorter(katSorter);
         table.setRowHeight(38);
         table.getColumnModel().getColumn(0).setMaxWidth(42);
         table.getColumnModel().getColumn(3).setMaxWidth(110);
@@ -169,11 +173,12 @@ public class KategoriForm extends JPanel {
         add(main, BorderLayout.CENTER);
 
         // ── Events ───────────────────────────────────────────────
-        btnS.addActionListener(e -> {
-            String kw = search.getText().trim();
-            filter(kw);
-        });
+        btnS.addActionListener(e -> {String kw=search.getText().trim();katSorter.setRowFilter(kw.isEmpty()?null:RowFilter.regexFilter("(?i)"+kw,1,2));});
         search.addActionListener(e -> btnS.doClick());
+        search.getDocument().addDocumentListener(new DocumentListener(){
+            void f(){String kw=search.getText().trim();katSorter.setRowFilter(kw.isEmpty()?null:RowFilter.regexFilter("(?i)"+kw,1,2));}
+            public void insertUpdate(DocumentEvent e){f();}public void removeUpdate(DocumentEvent e){f();}public void changedUpdate(DocumentEvent e){f();}
+        });
         btnRef.addActionListener(e -> load());
         btnNew.addActionListener(e -> clear());
         btnNew2.addActionListener(e -> clear());

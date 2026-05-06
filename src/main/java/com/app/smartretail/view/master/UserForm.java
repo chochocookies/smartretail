@@ -10,6 +10,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 import java.awt.*;
 import java.util.List;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
 
 public class UserForm extends JPanel {
 
@@ -53,7 +55,7 @@ public class UserForm extends JPanel {
         sub.setFont(UITheme.FONT_BODY); sub.setForeground(UITheme.TEXT_SECONDARY); ht.add(sub);
 
         JPanel acts = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0)); acts.setOpaque(false);
-        JButton btnRef = UITheme.ghostButton("\u21BB", UITheme.TEXT_MUTED);
+        JButton btnRef = UITheme.ghostButton("Refresh", UITheme.TEXT_MUTED);
         btnHapus = UITheme.dangerButton("Hapus User");
         btnNew   = UITheme.primaryButton("+ User Baru", UITheme.ACCENT_LIME);
         acts.add(btnRef); acts.add(btnHapus); acts.add(btnNew);
@@ -77,6 +79,8 @@ public class UserForm extends JPanel {
         String[] cols = {"#","Username","Nama Lengkap","Email","Role","Status"};
         mdl = new DefaultTableModel(cols,0){ public boolean isCellEditable(int r,int c){return false;} };
         table = new JTable(mdl); UITheme.styleTable(table);
+        TableRowSorter<DefaultTableModel> userSorter = new TableRowSorter<>(mdl);
+        table.setRowSorter(userSorter);
         table.setRowHeight(40);
         table.getColumnModel().getColumn(0).setMaxWidth(38);
         table.getColumnModel().getColumn(4).setMaxWidth(110);
@@ -151,6 +155,11 @@ public class UserForm extends JPanel {
 
         // Events
         search.addActionListener(e -> filterTable(search.getText(), cmbFilter.getSelectedItem().toString()));
+        search.getDocument().addDocumentListener(new DocumentListener(){
+            public void insertUpdate(DocumentEvent e){filterTable(search.getText(),cmbFilter.getSelectedItem().toString());}
+            public void removeUpdate(DocumentEvent e){filterTable(search.getText(),cmbFilter.getSelectedItem().toString());}
+            public void changedUpdate(DocumentEvent e){filterTable(search.getText(),cmbFilter.getSelectedItem().toString());}
+        });
         cmbFilter.addActionListener(e -> filterTable(search.getText(), cmbFilter.getSelectedItem().toString()));
         btnRef.addActionListener(e->load());
         btnNew.addActionListener(e->clearF()); btnNew2.addActionListener(e->clearF());

@@ -8,6 +8,8 @@ import com.app.smartretail.view.component.Icons;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -65,7 +67,7 @@ public class BarangForm extends JPanel {
         JPanel toggleGroup = new JPanel(new FlowLayout(FlowLayout.LEFT,1,0)); toggleGroup.setOpaque(false);
         toggleGroup.add(btnList); toggleGroup.add(btnGrid);
 
-        JButton btnRef = UITheme.ghostButton("↻", UITheme.TEXT_MUTED);
+        JButton btnRef = UITheme.ghostButton("Refresh", UITheme.TEXT_MUTED);
         btnHapus = UITheme.dangerButton("Hapus");
         btnEdit  = UITheme.ghostButton("Edit", UITheme.ACCENT_AMBER);
         btnTambah= UITheme.primaryButton("+ Tambah", UITheme.ACCENT_LIME);
@@ -86,6 +88,9 @@ public class BarangForm extends JPanel {
         String[] cols = {"#","Kode","PLU","Nama Barang","Harga Jual","Stok","Status"};
         mdl = new DefaultTableModel(cols, 0) { public boolean isCellEditable(int r, int c){ return false; } };
         table = new JTable(mdl); UITheme.styleTable(table);
+        TableRowSorter<DefaultTableModel> tableSorter = new TableRowSorter<>(mdl);
+        table.setRowSorter(tableSorter);
+        table.getTableHeader().setToolTipText("Klik header untuk mengurutkan");
         table.getColumnModel().getColumn(0).setMaxWidth(38);
         table.getColumnModel().getColumn(1).setPreferredWidth(80);
         table.getColumnModel().getColumn(2).setPreferredWidth(75);
@@ -170,6 +175,10 @@ public class BarangForm extends JPanel {
         setFE(false);
         btnS.addActionListener(e -> { String kw=txtSearch.getText().trim(); fill(kw.isEmpty()?ctrl.getAllBarang():ctrl.searchBarang(kw)); });
         txtSearch.addActionListener(e -> btnS.doClick());
+        txtSearch.getDocument().addDocumentListener(new DocumentListener(){
+            void f(){String kw=txtSearch.getText().trim();tableSorter.setRowFilter(kw.isEmpty()?null:RowFilter.regexFilter("(?i)"+kw,1,2,3));}
+            public void insertUpdate(DocumentEvent e){f();}public void removeUpdate(DocumentEvent e){f();}public void changedUpdate(DocumentEvent e){f();}
+        });
         btnRef.addActionListener(e -> load());
         btnTambah.addActionListener(e -> startNew());
         btnEdit.addActionListener(e -> { if(table.getSelectedRow()<0){AlertUtil.showWarning(this,"Pilih barang!");return;} setFE(true); lblFormTitle.setText("Edit: "+txtNama.getText()); });
