@@ -1,14 +1,36 @@
 package com.app.smartretail.view.component;
 
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.SwingConstants;
+import javax.swing.border.EmptyBorder;
+
 import com.app.smartretail.utils.Session;
 import com.app.smartretail.utils.UITheme;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import java.util.List;
 
 /**
  * SidebarPanel — Starline grouped sidebar, no dark mode toggle.
@@ -103,7 +125,7 @@ public class SidebarPanel extends JPanel {
 
         // ── MANAGEMENT ────────────────────────────────────────────
         groupLabel(nav, "MANAGEMENT");
-        addItem(nav, "users",     Icons::paintSettings,  "User Mgmt",   allowed);
+        addItem(nav, "users",     Icons::paintUsers,  "User Mgmt",   allowed);
         addItem(nav, "settings",  Icons::paintSettings,  "Settings",    allowed);
         addItem(nav, "help",      Icons::paintHelp,      "Help & Guide",allowed);
 

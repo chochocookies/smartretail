@@ -41,6 +41,7 @@ import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.RowFilter;
+import javax.swing.SwingConstants;
 import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -113,6 +114,8 @@ public class PurchaseForm extends JPanel {
 
     // History & supplier tab
     private JTable histTable;   private DefaultTableModel histMdl;
+    private int selectedHistTransaksiId = -1;   // ID transaksi yang dipilih di history
+    private JButton btnKonfirmasiPO;            // tombol konfirmasi PENDING
     private JTable supTable;    private DefaultTableModel supMdl;
     private JTextField sKode,sNama,sAlamat,sTlp,sEmail,sCP;
     private int selSupId = -1;
@@ -497,31 +500,66 @@ public class PurchaseForm extends JPanel {
 
         // Toolbar
         JPanel tbr = new JPanel(new BorderLayout(8, 0)); tbr.setOpaque(false);
-
         JTextField sField = UITheme.styledField("Cari nomor PO, supplier…");
         sField.setPreferredSize(new Dimension(240, 34));
 
-        JPanel rightBtns = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 0));
+        JPanel rightBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         rightBtns.setOpaque(false);
-        JButton btnRefreshHist = UITheme.ghostButton("Refresh",    UITheme.ACCENT_BLUE);
-        JButton btnExportCSV   = UITheme.ghostButton("Export CSV", UITheme.ACCENT_TEAL);
+        JButton btnRefreshHist = UITheme.ghostButton("Refresh",     UITheme.ACCENT_BLUE);
+        JButton btnExportCSV   = UITheme.ghostButton("Export CSV",  UITheme.ACCENT_TEAL);
         JButton btnExportPDF   = UITheme.primaryButton("Export PDF", UITheme.ACCENT_AMBER);
+        // ── BARU: tombol Konfirmasi & Batalkan PO Pending ──
+        btnKonfirmasiPO = UITheme.primaryButton("Konfirmasi PO", UITheme.ACCENT_LIME);
+        btnKonfirmasiPO.setEnabled(false);   // aktif hanya jika row PENDING dipilih
+        JButton btnBatalkanPO = UITheme.dangerButton("Batalkan PO");
+        btnBatalkanPO.setEnabled(false);
+
         rightBtns.add(btnRefreshHist);
         rightBtns.add(btnExportCSV);
         rightBtns.add(btnExportPDF);
+        rightBtns.add(Box.createHorizontalStrut(8));
+        rightBtns.add(Box.createHorizontalStrut(8));
+        rightBtns.add(btnBatalkanPO);
+        rightBtns.add(btnKonfirmasiPO);
 
-        tbr.add(sField,     BorderLayout.WEST);
-        tbr.add(rightBtns,  BorderLayout.EAST);
+        tbr.add(sField, BorderLayout.WEST);
+        tbr.add(rightBtns, BorderLayout.EAST);
 
-        // Table
-        String[] cols = {"No PO","Tanggal","Supplier","Jumlah Item","Total","Status"};
+        // Tabel — tambahkan kolom ID tersembunyi (index 6)
+        String[] cols = {"No PO","Tanggal","Supplier","Jumlah Item","Total","Status","_id"};
         histMdl = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int r, int c) { return false; }
+            public Class<?> getColumnClass(int c) { return c == 6 ? Integer.class : String.class; }
         };
         histTable = new JTable(histMdl);
         UITheme.styleTable(histTable);
-        histTable.setRowHeight(34);
-        histTable.setDefaultRenderer(Object.class, tblRenderer(4, UITheme.ACCENT_BLUE));
+        histTable.setRowHeight(36);
+
+        // Sembunyikan kolom _id
+        histTable.getColumnModel().getColumn(6).setMinWidth(0);
+        histTable.getColumnModel().getColumn(6).setMaxWidth(0);
+        histTable.getColumnModel().getColumn(6).setWidth(0);
+
+        // Renderer warna status
+        histTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(
+                    JTable t, Object v, boolean sel, boolean foc, int r, int c) {
+                Component cp = super.getTableCellRendererComponent(t, v, sel, foc, r, c);
+                cp.setBackground(sel ? new Color(238,242,255) :
+                    (r%2==0 ? UITheme.BG_CARD : UITheme.BG_ROW_ALT));
+                cp.setForeground(UITheme.TEXT_PRIMARY);
+                if (c == 5 && v != null) {
+                    switch (v.toString()) {
+                        case "SELESAI": cp.setForeground(UITheme.ACCENT_TEAL);   break;
+                        case "PENDING": cp.setForeground(UITheme.ACCENT_AMBER);  break;
+                        case "BATAL":   cp.setForeground(UITheme.ACCENT_CORAL);  break;
+                    }
+                }
+                if (c == 4) ((JLabel)cp).setHorizontalAlignment(SwingConstants.RIGHT);
+                ((JLabel)cp).setBorder(new EmptyBorder(0,12,0,12));
+                return cp;
+            }
+        });
 
         // Sort
         TableRowSorter<DefaultTableModel> histSorter = new TableRowSorter<>(histMdl);
@@ -529,8 +567,8 @@ public class PurchaseForm extends JPanel {
 
         // Real-time search
         sField.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { doFilter(); }
-            public void removeUpdate(DocumentEvent e) { doFilter(); }
+            public void insertUpdate(DocumentEvent e)  { doFilter(); }
+            public void removeUpdate(DocumentEvent e)  { doFilter(); }
             public void changedUpdate(DocumentEvent e) { doFilter(); }
             void doFilter() {
                 String kw = sField.getText().trim();
@@ -539,31 +577,45 @@ public class PurchaseForm extends JPanel {
             }
         });
 
-        // ── Events ──
-        btnRefreshHist.addActionListener(e -> loadHistory());
-        btnExportCSV.addActionListener(e -> exportHistoryCSV());
-        btnExportPDF.addActionListener(e -> exportHistoryPDF());   // ← FIX: sekarang terhubung
+        // Saat baris dipilih → enable/disable tombol aksi sesuai status
+        histTable.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
+            int vr = histTable.getSelectedRow();
+            if (vr < 0) {
+                selectedHistTransaksiId = -1;
+                btnKonfirmasiPO.setEnabled(false);
+                btnBatalkanPO.setEnabled(false);
+                return;
+            }
+            int mr = histTable.convertRowIndexToModel(vr);
+            Object idObj = histMdl.getValueAt(mr, 6);
+            selectedHistTransaksiId = idObj != null ? (int) idObj : -1;
+            String status = s(histMdl.getValueAt(mr, 5));
+            btnKonfirmasiPO.setEnabled("PENDING".equals(status));
+            btnBatalkanPO.setEnabled("PENDING".equals(status));
+        });
+
+        // Events
+        btnRefreshHist.addActionListener(e  -> loadHistory());
+        btnExportCSV.addActionListener(e    -> exportHistoryCSV());
+        btnExportPDF.addActionListener(e    -> exportHistoryPDF());
+        btnKonfirmasiPO.addActionListener(e -> konfirmasiPO(selectedHistTransaksiId, true));
+        btnBatalkanPO.addActionListener(e   -> konfirmasiPO(selectedHistTransaksiId, false));
+
+        // Legend
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 4));
+        legend.setOpaque(false);
+        legend.add(legendDot(UITheme.ACCENT_TEAL,  "SELESAI"));
+        legend.add(legendDot(UITheme.ACCENT_AMBER, "PENDING — pilih baris lalu klik Konfirmasi PO"));
+        legend.add(legendDot(UITheme.ACCENT_CORAL, "BATAL"));
 
         JPanel card = UITheme.card();
-        card.setLayout(new BorderLayout(0, 10));
+        card.setLayout(new BorderLayout(0, 8));
+        card.add(tbr,    BorderLayout.NORTH);
+        card.add(UITheme.styledScroll(histTable), BorderLayout.CENTER);
+        card.add(legend, BorderLayout.SOUTH);
 
-        JPanel hdrRow = new JPanel(new java.awt.BorderLayout()); hdrRow.setOpaque(false);
-        JLabel ttl = new JLabel("Riwayat Pembelian");
-        ttl.setFont(UITheme.FONT_H2); ttl.setForeground(UITheme.TEXT_PRIMARY);
-        JLabel hint = new JLabel("Klik header kolom untuk mengurutkan  •  Ketik di kolom cari untuk filter");
-        hint.setFont(UITheme.FONT_SMALL); hint.setForeground(UITheme.TEXT_MUTED);
-        hdrRow.add(ttl, java.awt.BorderLayout.WEST); hdrRow.add(hint, java.awt.BorderLayout.EAST);
-
-        card.add(tbr,                              java.awt.BorderLayout.NORTH);
-        card.add(hdrRow,                           java.awt.BorderLayout.CENTER);
-        card.add(UITheme.styledScroll(histTable),  java.awt.BorderLayout.SOUTH);
-
-        // Override layout agar tabel bisa grow
-        card.setLayout(new java.awt.BorderLayout(0, 8));
-        card.add(tbr,   java.awt.BorderLayout.NORTH);
-        card.add(UITheme.styledScroll(histTable), java.awt.BorderLayout.CENTER);
-
-        p.add(card, java.awt.BorderLayout.CENTER);
+        p.add(card, BorderLayout.CENTER);
         return p;
     }
 
@@ -652,26 +704,44 @@ public class PurchaseForm extends JPanel {
     private String s(Object o){return o==null?"":o.toString();}
 
     // ════════════════════════════════════════════════════════════════
-    // LOAD HISTORY
+    // LOAD HISTORY — semua transaksi PEMBELIAN termasuk PENDING
     // ════════════════════════════════════════════════════════════════
     private void loadHistory() {
         histMdl.setRowCount(0);
-        try {
-            List<Transaksi> list = trxCtrl.getRiwayatPembelian();
-            if (list == null || list.isEmpty()) {
-                histMdl.addRow(new Object[]{"— Tidak ada data —", "", "", "", "", ""});
-                return;
-            }
-            for (Transaksi t : list) {
+        selectedHistTransaksiId = -1;
+        btnKonfirmasiPO.setEnabled(false);
+
+        // Query langsung agar dapat semua status + jumlah item + transaksi ID
+        String sql =
+            "SELECT t.id, t.no_transaksi, t.tanggal, " +
+            "COALESCE(s.nama_supplier, '—') AS supplier, " +
+            "COUNT(td.id) AS jumlah_item, " +
+            "t.grand_total, t.status " +
+            "FROM transaksi t " +
+            "LEFT JOIN supplier s ON t.supplier_id = s.id " +
+            "LEFT JOIN transaksi_detail td ON td.transaksi_id = t.id " +
+            "WHERE t.tipe = 'PEMBELIAN' " +
+            "GROUP BY t.id " +
+            "ORDER BY t.tanggal DESC";
+
+        try (java.sql.Statement st = com.app.smartretail.config.DatabaseConnection
+                .getInstance().createStatement();
+             java.sql.ResultSet rs = st.executeQuery(sql)) {
+            boolean ada = false;
+            while (rs.next()) {
+                ada = true;
                 histMdl.addRow(new Object[]{
-                    t.getNoTransaksi(),
-                    FormatUtil.formatDateTime(t.getTanggal()),
-                    t.getNamaSupplier() != null ? t.getNamaSupplier() : "-",
-                    t.getDetails() != null ? t.getDetails().size() : "-",
-                    FormatUtil.formatRupiah(t.getGrandTotal()),
-                    t.getStatus() != null ? t.getStatus() : "SELESAI"
+                    rs.getString("no_transaksi"),
+                    FormatUtil.formatDateTime(rs.getTimestamp("tanggal")),
+                    rs.getString("supplier"),
+                    rs.getInt("jumlah_item"),
+                    FormatUtil.formatRupiah(rs.getDouble("grand_total")),
+                    rs.getString("status"),
+                    rs.getInt("id")        // kolom tersembunyi _id
                 });
             }
+            if (!ada)
+                histMdl.addRow(new Object[]{"— Tidak ada data —","","","","","SELESAI", 0});
         } catch (Exception ex) {
             showDetailedError("Gagal memuat riwayat pembelian", ex);
         }
@@ -987,6 +1057,131 @@ public class PurchaseForm extends JPanel {
         } catch (Exception ex) {
             showDetailedError("Gagal menyimpan CSV", ex);
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // KONFIRMASI / BATALKAN PO PENDING
+    // ════════════════════════════════════════════════════════════════
+    /**
+     * konfirmasiPO — selesaikan atau batalkan transaksi berstatus PENDING.
+     *
+     * Jika konfirmasi (selesai=true):
+     *   1. UPDATE transaksi SET status='SELESAI' WHERE id=?
+     *   2. UPDATE barang SET stok = stok + qty untuk setiap item di transaksi_detail
+     *   3. Refresh tabel history
+     *
+     * Jika batalkan (selesai=false):
+     *   1. UPDATE transaksi SET status='BATAL' WHERE id=?
+     *   2. Stok TIDAK diubah (PO dibatalkan sebelum barang diterima)
+     */
+    private void konfirmasiPO(int transaksiId, boolean selesai) {
+        if (transaksiId <= 0) {
+            AlertUtil.showWarning(this, "Pilih transaksi PENDING terlebih dahulu."); return;
+        }
+
+        // Ambil detail PO untuk konfirmasi dialog
+        int vr = histTable.getSelectedRow();
+        int mr = histTable.convertRowIndexToModel(vr);
+        String noPO   = s(histMdl.getValueAt(mr, 0));
+        String total  = s(histMdl.getValueAt(mr, 4));
+        String aksi   = selesai ? "Konfirmasi" : "Batalkan";
+        String aksiMsg= selesai
+            ? "Transaksi akan ditandai <b>SELESAI</b> dan stok barang akan diperbarui."
+            : "Transaksi akan ditandai <b>BATAL</b>. Stok <u>tidak</u> berubah.";
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "<html><b>" + aksi + " Purchase Order</b><br><br>" +
+            "No. PO: <b>" + noPO + "</b><br>" +
+            "Total:  <b>" + total + "</b><br><br>" +
+            aksiMsg + "<br><br>Lanjutkan?</html>",
+            aksi + " PO", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+        new SwingWorker<Boolean, Void>() {
+            String errMsg = null;
+            @Override
+            protected Boolean doInBackground() {
+                java.sql.Connection conn = com.app.smartretail.config.DatabaseConnection.getInstance();
+                try {
+                    conn.setAutoCommit(false);
+
+                    String newStatus = selesai ? "SELESAI" : "BATAL";
+                    // Step 1: update status transaksi
+                    try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE transaksi SET status=? WHERE id=?")) {
+                        ps.setString(1, newStatus);
+                        ps.setInt(2, transaksiId);
+                        ps.executeUpdate();
+                    }
+
+                    // Step 2: jika SELESAI → tambah stok barang
+                    if (selesai) {
+                        try (java.sql.PreparedStatement ps = conn.prepareStatement(
+                                "SELECT barang_id, qty FROM transaksi_detail WHERE transaksi_id=?")) {
+                            ps.setInt(1, transaksiId);
+                            java.sql.ResultSet rs = ps.executeQuery();
+                            try (java.sql.PreparedStatement psUpd = conn.prepareStatement(
+                                    "UPDATE barang SET stok = stok + ? WHERE id = ?")) {
+                                while (rs.next()) {
+                                    psUpd.setInt(1, rs.getInt("qty"));
+                                    psUpd.setInt(2, rs.getInt("barang_id"));
+                                    psUpd.addBatch();
+                                }
+                                psUpd.executeBatch();
+                            }
+                        }
+                    }
+
+                    conn.commit();
+                    conn.setAutoCommit(true);
+                    return true;
+                } catch (Exception ex) {
+                    try { conn.rollback(); conn.setAutoCommit(true); } catch (Exception ignored) {}
+                    java.io.StringWriter sw = new java.io.StringWriter();
+                    ex.printStackTrace(new java.io.PrintWriter(sw));
+                    errMsg = ex.getMessage() + "\n\n" + sw;
+                    return false;
+                }
+            }
+            @Override
+            protected void done() {
+                setCursor(Cursor.getDefaultCursor());
+                try {
+                    boolean ok = get();
+                    if (ok) {
+                        String msg = selesai
+                            ? "PO <b>" + noPO + "</b> berhasil dikonfirmasi!<br>" +
+                              "Status: <b>SELESAI</b><br>Stok barang telah diperbarui."
+                            : "PO <b>" + noPO + "</b> dibatalkan.<br>Status: <b>BATAL</b>";
+                        JOptionPane.showMessageDialog(PurchaseForm.this,
+                            "<html>" + msg + "</html>",
+                            selesai ? "PO Dikonfirmasi" : "PO Dibatalkan",
+                            JOptionPane.INFORMATION_MESSAGE);
+                        loadHistory(); // refresh tabel
+                    } else {
+                        showDetailedError("Gagal " + aksi + " PO",
+                            new RuntimeException(errMsg));
+                    }
+                } catch (Exception ex) {
+                    showDetailedError("Error", ex);
+                }
+            }
+        }.execute();
+    }
+
+    /** Buat dot legend kecil */
+    private JPanel legendDot(Color color, String text) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        p.setOpaque(false);
+        JLabel dot = new JLabel("●");
+        dot.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        dot.setForeground(color);
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(UITheme.FONT_SMALL); lbl.setForeground(UITheme.TEXT_SECONDARY);
+        p.add(dot); p.add(lbl);
+        return p;
     }
 
     // ════════════════════════════════════════════════════════════════

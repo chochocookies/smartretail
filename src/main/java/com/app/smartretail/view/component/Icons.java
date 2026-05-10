@@ -35,6 +35,7 @@ public class Icons {
     public static final Icon REPORT     = line(Icons::paintReport);
     public static final Icon CHART      = line(Icons::paintChart);
     public static final Icon SETTINGS   = line(Icons::paintSettings);
+    public static final Icon USER_MANAGEMENT = line(Icons::paintUsers);
     public static final Icon HELP       = line(Icons::paintHelp);
     public static final Icon PAYROLL    = line(Icons::paintPayroll);
 
@@ -181,13 +182,13 @@ public class Icons {
         g.fillOval(cx+r-7, cy+r/2-3, 5, 5);
     }
 
-    public static void paintUsers(Graphics2D g, int cx, int cy, int r, Color c) {
-        g.setColor(c); g.setStroke(s(1.4f));
-        g.drawOval(cx-r/2-1, cy-r+1, r-2, r-3);
-        g.drawArc(cx-r+1, cy+1, r*2-2, r-2, 0, 180);
-        g.drawOval(cx+r/4, cy-r+3, r/2, r/2);
-        g.drawArc(cx+1, cy+1, r-2, r/2, 0, 180);
-    }
+    // public static void paintUsers(Graphics2D g, int cx, int cy, int r, Color c) {
+    //     g.setColor(c); g.setStroke(s(1.4f));
+    //     g.drawOval(cx-r/2-1, cy-r+1, r-2, r-3);
+    //     g.drawArc(cx-r+1, cy+1, r*2-2, r-2, 0, 180);
+    //     g.drawOval(cx+r/4, cy-r+3, r/2, r/2);
+    //     g.drawArc(cx+1, cy+1, r-2, r/2, 0, 180);
+    // }
 
     public static void paintReport(Graphics2D g, int cx, int cy, int r, Color c) {
         g.setColor(c); g.setStroke(s(1.4f));
@@ -205,6 +206,17 @@ public class Icons {
         int[] py = {cy+3, cy-r+6, cy-r/2, cy+3, cy-r+10};
         g.drawPolyline(px, py, 5);
     }
+
+        public static void paintUsers(Graphics2D g, int cx, int cy, int r, Color c) {
+        g.setColor(c); g.setStroke(s(1.4f));
+        int headR = r * 4 / 10;
+        g.drawOval(cx - headR, cy - r + 1, headR * 2, headR * 2);
+        
+        int bodyW = r * 2 - 2;
+        int bodyH = r;
+        g.drawArc(cx - bodyW / 2, cy + 1, bodyW, bodyH, 0, 180);
+    }
+
 
     public static void paintSettings(Graphics2D g, int cx, int cy, int r, Color c) {
         g.setColor(c); g.setStroke(s(1.4f));
